@@ -1,6 +1,6 @@
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { agents, agentOrder, detectInstalledAgents, getAgentConfig } from '../src/agents.ts';
+import { agentOrder, agents, detectInstalledAgents, getAgentConfig } from '../src/agents.ts';
 
 describe('agent registry', () => {
   it('covers every AgentId in display order', () => {

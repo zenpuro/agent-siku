@@ -21,8 +21,7 @@
     "lint": "biome check .",
     "format": "biome check --write .",
     "typecheck": "tsc --noEmit",
-    "prepublishOnly": "npm run build",
-    "envdump": "D:\\software\\Node\\node.exe dump-env.mjs"
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
     "@clack/prompts": "^1.8.1",

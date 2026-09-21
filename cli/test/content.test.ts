@@ -1,4 +1,4 @@
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -18,7 +18,10 @@ beforeAll(() => {
   writeSkill(join(root, 'skills/engineering/init'), '初始化或更新项目的 AGENTS.md');
   writeSkill(join(root, 'skills/engineering/mattcopock/ask-matt'), '向 Matt 提问');
   mkdirSync(join(root, 'skills/engineering/mattcopock/ask-matt/agents'), { recursive: true });
-  writeFileSync(join(root, 'skills/engineering/mattcopock/ask-matt/agents/openai.yaml'), 'model: x');
+  writeFileSync(
+    join(root, 'skills/engineering/mattcopock/ask-matt/agents/openai.yaml'),
+    'model: x',
+  );
   writeSkill(join(root, 'skills/productivity/eli5'), '把复杂概念讲简单');
   // 无 SKILL.md 的目录不应被识别
   mkdirSync(join(root, 'skills/misc/empty'), { recursive: true });
