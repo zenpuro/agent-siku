@@ -1,6 +1,4 @@
 import {
-  copyFileSync,
-  cpSync,
   existsSync,
   mkdirSync,
   mkdtempSync,

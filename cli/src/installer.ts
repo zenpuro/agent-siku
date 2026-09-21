@@ -4,7 +4,6 @@ import type {
   AgentId,
   InstallPlan,
   InstallSelection,
-  RuleInfo,
   RuleTarget,
   SkillInfo,
   SkillTarget,
