@@ -1,0 +1,41 @@
+{
+  "name": "siku",
+  "version": "0.1.0",
+  "description": "Install centrally-maintained agent skills, rules and AGENTS.md into any project or user environment.",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "siku": "./dist/cli.mjs"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "tsx src/cli.ts",
+    "build": "tsdown",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build",
+    "envdump": "D:\\software\\Node\\node.exe dump-env.mjs"
+  },
+  "dependencies": {
+    "@clack/prompts": "^1.8.1",
+    "picocolors": "^1.1.1",
+    "tar": "^7.5.22"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.14",
+    "@biomejs/cli-win32-x64": "^2.5.14",
+    "@types/node": "^26.6.2",
+    "tsdown": "^0.22.2",
+    "tsx": "^4.23.15",
+    "typescript": "^6.0.3",
+    "vitest": "^5.0.1"
+  }
+}

@@ -2,3 +2,7 @@
 .claude
 AGENTS.md
 skills-lock.json
+
+# siku cli
+cli/dist/
+cli/node_modules/
