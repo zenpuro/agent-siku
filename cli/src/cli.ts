@@ -23,6 +23,7 @@ import {
   promptScope,
   promptSkills,
 } from './prompts.ts';
+import type { AgentId, InstallPlan, RuleInfo, SkillInfo } from './types.ts';
 
 const HELP = `siku — 把集中维护的 skills / rules / AGENTS.md 安装到任意项目或用户环境
 
@@ -75,6 +76,49 @@ export function parseInstallArgs(args: string[]): InstallFlags {
     throw new Error('--project 与 --user 只能指定一个');
   }
   return flags;
+}
+
+/** 收集完全部选择后，一次安装的完整输入（与交互解耦，可直接测试）。 */
+export interface PerformInstallInput {
+  contentRoot: string;
+  lockSource: { repo: string; ref: string };
+  scope: 'project' | 'user';
+  rootDir: string;
+  agents: AgentId[];
+  skills: SkillInfo[];
+  rules: RuleInfo[];
+  agentsMd: { inject: boolean; conflict: AgentsMdConflict };
+}
+
+export interface PerformInstallResult {
+  plan: InstallPlan;
+  mdTargets: string[];
+  lockPath: string;
+}
+
+/** 安装核心：计划 → 复制 → 上下文文件 → lock。不做任何交互。 */
+export function performInstall(input: PerformInstallInput): PerformInstallResult {
+  const manifest = buildManifest(input.contentRoot);
+  const plan = planInstall(input.rootDir, input.agents, {
+    skills: input.skills,
+    rules: input.rules,
+    injectAgentsMd: input.agentsMd.inject,
+  });
+  applyInstall(plan);
+
+  const mdTargets = input.agentsMd.inject
+    ? agentsMdTargets(input.scope, input.rootDir, input.agents.includes('claude-code'))
+    : [];
+  if (input.agentsMd.inject) {
+    const mdContent = buildAgentsMdContent(manifest.agentsMdFiles);
+    for (const target of mdTargets) {
+      applyAgentsMd(target, mdContent, input.agentsMd.conflict);
+    }
+  }
+
+  const lock = buildLockFile(input.lockSource, plan, input.agentsMd.inject);
+  const lockPath = writeLockFile(input.rootDir, lock);
+  return { plan, mdTargets, lockPath };
 }
 
 export async function runInstall(flags: InstallFlags): Promise<void> {
@@ -137,27 +181,25 @@ export async function runInstall(flags: InstallFlags): Promise<void> {
       return;
     }
 
-    // 4. 计划并执行
-    const plan = planInstall(rootDir, agents, { skills, rules, injectAgentsMd: inject });
-    for (const warning of plan.warnings) clack.log.warn(warning);
-    applyInstall(plan);
+    // 4. 执行安装核心
+    const result = performInstall({
+      contentRoot,
+      lockSource,
+      scope,
+      rootDir,
+      agents,
+      skills,
+      rules,
+      agentsMd: { inject, conflict: conflict === false ? 'skip' : conflict },
+    });
+    for (const warning of result.plan.warnings) clack.log.warn(warning);
 
-    if (inject && conflict !== false) {
-      const mdContent = buildAgentsMdContent(manifest.agentsMdFiles);
-      for (const target of mdTargets) {
-        applyAgentsMd(target, mdContent, conflict);
-      }
-    }
-
-    // 5. lock + 摘要
-    const lock = buildLockFile(lockSource, plan, inject);
-    const lockPath = writeLockFile(rootDir, lock);
-
+    // 5. 摘要
     const lines = [
-      `skills: ${plan.skillTargets.length} 个目标（${skills.length} 个技能）`,
-      `rules: ${plan.ruleTargets.length} 个文件`,
-      `agents-md: ${inject ? mdTargets.join('、') : '未注入'}`,
-      `lock: ${lockPath}`,
+      `skills: ${result.plan.skillTargets.length} 个目标（${skills.length} 个技能）`,
+      `rules: ${result.plan.ruleTargets.length} 个文件`,
+      `agents-md: ${inject ? result.mdTargets.join('、') : '未注入'}`,
+      `lock: ${result.lockPath}`,
     ];
     clack.note(lines.join('\n'), '安装完成');
     clack.outro('完成。重启 agent 后生效。');
