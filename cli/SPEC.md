@@ -138,14 +138,16 @@ cli/
 │   ├── constants.ts      ← 默认 repo、ref、路径常量
 │   ├── types.ts          ← AgentId / InstallOptions / Selection / LockFile 等
 │   ├── agents.ts         ← agent 注册表 + 安装检测
-│   ├── content.ts        ← 下载/解压 或 本地 source；发现 skills/rules/agents-md
+│   ├── content.ts        ← 内容发现：扫描 skills / rules / agents-md
+│   ├── download.ts       ← 远端拉取：codeload tarball 下载、解压、顶层目录剥离
 │   ├── prompts.ts        ← 全部 @clack/prompts 交互（薄层，不含业务逻辑）
 │   ├── installer.ts      ← 复制引擎：selection → 目标路径
 │   ├── agents-md.ts      ← AGENTS.md / CLAUDE.md 生成、标记区块合并
 │   └── lock.ts           ← siku-lock.json 构建与写入
 └── test/
     ├── agents.test.ts
-    ├── content.test.ts   ← 网络调用注入 mock；发现逻辑用 fixture 目录
+    ├── content.test.ts   ← 发现逻辑用 fixtures 目录
+    ├── download.test.ts  ← 网络调用注入 mock；解压用真实 tar
     ├── installer.test.ts
     ├── agents-md.test.ts
     └── lock.test.ts
