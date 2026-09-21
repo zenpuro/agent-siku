@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { create } from 'tar';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { downloadContent, type DownloadDeps } from '../src/download.ts';
+import { type DownloadDeps, downloadContent } from '../src/download.ts';
 
 const TOP_DIR = 'zenpuro-agent-siku-main';
 

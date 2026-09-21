@@ -2,9 +2,15 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { extract as tarExtract } from 'tar';
-import type { ExtractOptions } from 'tar';
 
 const REPO_SLUG = /^[^\s/]+\/[^\s/]+$/;
+
+/** tar 解压所需的最小选项集（结构化类型，避免耦合 tar 的类型导出）。 */
+interface ExtractCall {
+  file: string;
+  cwd: string;
+  strip?: number;
+}
 
 export interface RemoteContentOptions {
   /** GitHub 仓库，owner/repo 形式。 */
@@ -15,7 +21,7 @@ export interface RemoteContentOptions {
 
 export interface DownloadDeps {
   fetchImpl?: typeof fetch;
-  extract?: (options: ExtractOptions) => Promise<void>;
+  extract?: (options: ExtractCall) => Promise<void>;
 }
 
 /**
@@ -37,7 +43,7 @@ export async function downloadContent(
   }
 
   const fetchImpl = deps.fetchImpl ?? fetch;
-  const extract = deps.extract ?? ((o: ExtractOptions) => tarExtract(o));
+  const extract = deps.extract ?? ((o: ExtractCall) => tarExtract(o));
 
   const urls = [
     `https://codeload.github.com/${repo}/tar.gz/refs/heads/${ref}`,

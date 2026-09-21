@@ -1,25 +1,16 @@
-import { cpSync, existsSync, mkdirSync, copyFileSync } from 'node:fs';
+import { copyFileSync, cpSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import type { AgentId, InstallSelection, RuleInfo, SkillInfo } from './types.ts';
+import type {
+  AgentId,
+  InstallPlan,
+  InstallSelection,
+  RuleInfo,
+  RuleTarget,
+  SkillInfo,
+  SkillTarget,
+} from './types.ts';
 
 const CLAUDE_ARTIFACT_AGENT: AgentId = 'claude-code';
-
-export interface SkillTarget {
-  skill: SkillInfo;
-  toDir: string;
-}
-
-export interface RuleTarget {
-  rule: RuleInfo;
-  toFile: string;
-}
-
-export interface InstallPlan {
-  skillTargets: SkillTarget[];
-  ruleTargets: RuleTarget[];
-  /** 计划阶段发现的问题（如技能目录名冲突），由上层打印。 */
-  warnings: string[];
-}
 
 /**
  * 把用户选择映射为目标文件操作。纯函数，不做任何 IO。

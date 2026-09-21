@@ -1,4 +1,13 @@
-import { copyFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  copyFileSync,
+  cpSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -32,7 +41,7 @@ function makeSelectionDir(skills: SkillInfo[], rules: string[] = []): InstallSel
     rules: rules.map((id, i) => {
       const srcFile = join(fsRoot, `r${i}.md`);
       writeFileSync(srcFile, `# rule ${id}`);
-      return { id, category: id.split('/')[0], srcFile };
+      return { id, category: id.split('/')[0] ?? '', srcFile };
     }),
     injectAgentsMd: false,
   };
@@ -44,7 +53,7 @@ describe('planInstall', () => {
     const sel = makeSelectionDir([makeSkill('engineering/init', 'init', 'x')]);
     const plan = planInstall(root, ['pi'], sel);
     expect(plan.skillTargets).toHaveLength(1);
-    expect(plan.skillTargets[0].toDir).toContain(join('.agents', 'skills', 'init'));
+    expect(plan.skillTargets[0]?.toDir).toContain(join('.agents', 'skills', 'init'));
     expect(plan.ruleTargets).toHaveLength(0);
   });
 
@@ -61,7 +70,9 @@ describe('planInstall', () => {
     const plan = planInstall(root, ['zcode'], sel);
     expect(plan.ruleTargets).toHaveLength(0);
     const planClaude = planInstall(root, ['claude-code'], sel);
-    expect(planClaude.ruleTargets[0].toFile).toContain(join('.claude', 'rules', 'common', 'coding-style.md'));
+    expect(planClaude.ruleTargets[0]?.toFile).toContain(
+      join('.claude', 'rules', 'common', 'coding-style.md'),
+    );
   });
 
   it('skips duplicate skill dir names with a warning', () => {
@@ -78,7 +89,10 @@ describe('planInstall', () => {
 
 describe('applyInstall + verifyInstall', () => {
   it('copies skill trees and rule files; never deletes unrelated content', () => {
-    const sel = makeSelectionDir([makeSkill('productivity/eli5', 'eli5', 'x')], ['common/patterns.md']);
+    const sel = makeSelectionDir(
+      [makeSkill('productivity/eli5', 'eli5', 'x')],
+      ['common/patterns.md'],
+    );
     const project = join(root, 'proj-a');
     mkdirSync(project, { recursive: true });
     const plan = planInstall(project, ['claude-code'], sel);

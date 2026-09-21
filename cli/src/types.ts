@@ -49,6 +49,23 @@ export interface InstallSelection {
   injectAgentsMd: boolean;
 }
 
+export interface SkillTarget {
+  skill: SkillInfo;
+  toDir: string;
+}
+
+export interface RuleTarget {
+  rule: RuleInfo;
+  toFile: string;
+}
+
+export interface InstallPlan {
+  skillTargets: SkillTarget[];
+  ruleTargets: RuleTarget[];
+  /** 计划阶段发现的问题（如技能目录名冲突），由上层打印。 */
+  warnings: string[];
+}
+
 export type InstallScope = 'project' | 'user';
 
 /** 一次安装的完整输入。 */
