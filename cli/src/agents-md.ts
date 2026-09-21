@@ -1,5 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { AGENTS_MD_END, AGENTS_MD_START } from './constants.ts';
+import type { InstallScope } from './types.ts';
 
 export type AgentsMdConflict = 'overwrite' | 'append' | 'skip';
 export type AgentsMdResult = 'written' | 'overwritten' | 'appended' | 'skipped';
@@ -47,6 +49,18 @@ export function mergeMarkedBlock(existing: string, content: string): string {
     return existing.replace(pattern, block);
   }
   return `${existing.trimEnd()}\n\n${block}\n`;
+}
+
+/** 返回本次安装需要写入的上下文文件列表。 */
+export function agentsMdTargets(
+  scope: InstallScope,
+  rootDir: string,
+  hasClaude: boolean,
+): string[] {
+  if (scope === 'project') return [join(rootDir, 'AGENTS.md')];
+  const targets = [join(rootDir, '.agents', 'AGENTS.md')];
+  if (hasClaude) targets.push(join(rootDir, '.claude', 'CLAUDE.md'));
+  return targets;
 }
 
 function escapeRegExp(s: string): string {
