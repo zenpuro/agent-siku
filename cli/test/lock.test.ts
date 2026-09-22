@@ -69,9 +69,17 @@ describe('buildLockFile + writeLockFile', () => {
       warnings: [],
     };
 
-    const lock = buildLockFile({ repo: 'zenpuro/agent-siku', ref: 'main' }, plan, true);
+    const lock = buildLockFile(
+      { url: 'https://github.com/zenpuro/agent-siku', ref: 'main', sha: 'abc1234' },
+      plan,
+      true,
+    );
     expect(lock.version).toBe(1);
-    expect(lock.source).toEqual({ repo: 'zenpuro/agent-siku', ref: 'main' });
+    expect(lock.source).toEqual({
+      url: 'https://github.com/zenpuro/agent-siku',
+      ref: 'main',
+      sha: 'abc1234',
+    });
     expect(Object.keys(lock.skills)).toEqual(['init']);
     expect(lock.skills.init).toMatch(/^[0-9a-f]{64}$/);
     expect(lock.rules['common/style.md']).toMatch(/^[0-9a-f]{64}$/);
@@ -83,7 +91,7 @@ describe('buildLockFile + writeLockFile', () => {
     const lock: LockFile = {
       version: 1,
       installedAt: '2026-01-01T00:00:00.000Z',
-      source: { repo: 'zenpuro/agent-siku', ref: 'main' },
+      source: { url: 'https://github.com/zenpuro/agent-siku', ref: 'main' },
       skills: {},
       rules: {},
       agentsMd: false,

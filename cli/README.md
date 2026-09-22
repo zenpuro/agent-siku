@@ -8,11 +8,11 @@ npx siku install
 
 ## 工作方式
 
-CLI 与内容分离：本包只含安装器；内容在运行时从内容仓库拉取（GitHub API tarball 端点，分支/标签/SHA 通吃）。内容更新 = 内容仓库 git push，CLI 无需重新发布。
+CLI 与内容分离：本包只含安装器；内容在运行时通过 `git clone --depth 1` 从内容仓库拉取。内容更新 = 内容仓库 git push，CLI 无需重新发布。需要本机安装 git。
 
-仓库链接必传，无内置默认值：`--repo` > `SIKU_REPO` 环境变量 > 交互提示。接受 `owner/repo`、`https://github.com/owner/repo`（可带 `.git`）与 `git@github.com:owner/repo.git`。
+仓库链接必传，无内置默认值：`--repo` > `SIKU_REPO` 环境变量 > 交互提示。接受任意 Git 托管的完整 URL（https / ssh）或裸 `owner/repo`（固定展开为 github.com）；`--ref` 仅支持分支/标签。
 
-私有仓库需认证：预先设置 `SIKU_TOKEN` 或 `GITHUB_TOKEN`（需要对仓库的读权限）；未设置时，拉取遇到 404（GitHub 对无权限的私有仓库同样返回 404）会交互询问 token 后重试。
+私有仓库认证外包给 git：本机已配置好的 SSH key、credential helper（含 `gh auth login`）直接继承，siku 不询问、不存储凭据。CI 等非交互场景可设置 `SIKU_TOKEN` 或 `GITHUB_TOKEN`，将以 basic-auth 嵌入 HTTPS clone URL。
 
 ## 安装目标
 
@@ -34,9 +34,9 @@ siku install [options]
   --project                 Install into the current project (skips scope prompt)
   --user                    Install into user home ~ (skips scope prompt)
   --repo <link>             Content repo link — required unless --source
-                            (owner/repo or a github.com repo URL; SIKU_REPO env
-                            and interactive prompt as fallbacks, no default)
-  --ref <ref>               Content branch or tag (default main)
+                            (owner/repo, a https/ssh git URL, or git@host:path; any git host works;
+                            falls back to SIKU_REPO env, then interactive prompt)
+  --ref <ref>               Content branch or tag (default main; commit SHAs unsupported)
   --source <dir>            Read a local content directory directly (dev, offline, skips download)
   --help, -h                Show help
   siku --version            Show version

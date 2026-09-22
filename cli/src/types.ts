@@ -78,8 +78,11 @@ export interface InstallOptions {
 }
 
 export interface LockSource {
-  repo: string;
+  /** 内容仓库 git URL；--source 本地安装时为 "(local) <目录名>" 标记。 */
+  url: string;
   ref: string;
+  /** clone 得到的 commit SHA（本地源无此字段）。 */
+  sha?: string;
 }
 
 export interface LockFile {

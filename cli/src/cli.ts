@@ -12,7 +12,7 @@ import {
 } from './agents-md.ts';
 import { DEFAULT_REF, VERSION } from './constants.ts';
 import { buildManifest } from './content.ts';
-import { downloadContent, parseRepoInput } from './download.ts';
+import { cloneContent, parseRepoUrl } from './download.ts';
 import { applyInstall, planInstall } from './installer.ts';
 import { buildLockFile, writeLockFile } from './lock.ts';
 import {
@@ -23,9 +23,8 @@ import {
   promptRules,
   promptScope,
   promptSkills,
-  promptToken,
 } from './prompts.ts';
-import type { AgentId, InstallPlan, RuleInfo, SkillInfo } from './types.ts';
+import type { AgentId, InstallPlan, LockSource, RuleInfo, SkillInfo } from './types.ts';
 
 const HELP = `siku — install centrally-maintained skills / rules / AGENTS.md into any project or user environment
 
@@ -38,15 +37,17 @@ siku install options:
   --project                 Install into the current project (skips scope prompt)
   --user                    Install into user home ~ (skips scope prompt)
   --repo <link>             Content repo link — required unless --source
-                            (owner/repo, https://github.com/owner/repo, or git@github.com:owner/repo.git;
+                            (owner/repo, a https/ssh git URL, or git@host:path; any git host works;
                             falls back to SIKU_REPO env, then interactive prompt)
-  --ref <ref>               Content branch or tag (default ${DEFAULT_REF})
+  --ref <ref>               Content branch or tag (default ${DEFAULT_REF}; commit SHAs unsupported)
   --source <dir>            Read a local content directory directly (dev, offline, skips download)
   --help, -h                Show this help
 
 Private repos:
-  Set SIKU_TOKEN or GITHUB_TOKEN to a token with repo read access,
-  or you will be prompted for one when the repo requires auth.
+  siku clones via git, so it uses whatever auth your git already has
+  (SSH key, credential helper, "gh auth login"). For CI without interactive
+  git auth, set SIKU_TOKEN or GITHUB_TOKEN — it is embedded as basic auth
+  on https clone URLs only.
 
 Install targets:
   skills     Always written to .agents/skills/; duplicated to .claude/skills/ when Claude Code is selected
@@ -89,7 +90,7 @@ export function parseInstallArgs(args: string[]): InstallFlags {
 /** 收集完全部选择后，一次安装的完整输入（与交互解耦，可直接测试）。 */
 export interface PerformInstallInput {
   contentRoot: string;
-  lockSource: { repo: string; ref: string };
+  lockSource: LockSource;
   scope: 'project' | 'user';
   rootDir: string;
   agents: AgentId[];
@@ -135,7 +136,7 @@ export async function runInstall(flags: InstallFlags): Promise<void> {
   // 1. 解析内容源：本地目录或 GitHub 远端
   let contentRoot: string;
   let cleanup = (): void => {};
-  let lockSource: { repo: string; ref: string };
+  let lockSource: LockSource;
   if (flags.source) {
     contentRoot = resolve(flags.source);
     if (
@@ -147,19 +148,20 @@ export async function runInstall(flags: InstallFlags): Promise<void> {
         `Invalid local content directory (missing skills/, rules/ or agents-md/): ${contentRoot}`,
       );
     }
-    lockSource = { repo: `(local) ${basename(contentRoot)}`, ref: 'local' };
+    lockSource = { url: `(local) ${basename(contentRoot)}`, ref: 'local' };
     clack.log.info(`Using local content source: ${contentRoot}`);
   } else {
     // 仓库链接必传：flag > SIKU_REPO > 交互询问，无内置默认
     const repoInput = flags.repo ?? process.env.SIKU_REPO;
-    const repo = parseRepoInput(repoInput ?? (await promptRepo()));
+    const url = parseRepoUrl(repoInput ?? (await promptRepo()));
     const ref = flags.ref ?? DEFAULT_REF;
     const token = process.env.SIKU_TOKEN ?? process.env.GITHUB_TOKEN;
     const spinner = clack.spinner();
-    spinner.start(`Fetching content from ${repo}@${ref}...`);
-    contentRoot = await downloadContent({ repo, ref, token }, { promptToken });
-    spinner.stop('Content downloaded');
-    lockSource = { repo, ref };
+    spinner.start(`Cloning content from ${url}@${ref}...`);
+    const cloned = await cloneContent({ url, ref, token });
+    contentRoot = cloned.dir;
+    spinner.stop('Content cloned');
+    lockSource = { url, ref, sha: cloned.sha };
     cleanup = () => rmSync(contentRoot, { recursive: true, force: true });
   }
 

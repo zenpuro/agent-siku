@@ -1,7 +1,7 @@
 import * as clack from '@clack/prompts';
 import { agentOrder, agents } from './agents.ts';
 import type { AgentsMdConflict } from './agents-md.ts';
-import { parseRepoInput } from './download.ts';
+import { parseRepoUrl } from './download.ts';
 import { buildTree } from './tree.ts';
 import { PICKER_CANCEL, treeMultiselect } from './tree-picker.ts';
 import type { AgentId, RuleInfo, SkillInfo } from './types.ts';
@@ -23,23 +23,13 @@ export async function promptRepo(): Promise<string> {
       placeholder: 'https://github.com/owner/repo',
       validate: (value) => {
         try {
-          parseRepoInput(value ?? '');
+          parseRepoUrl(value ?? '');
         } catch (err) {
           return err instanceof Error ? err.message : String(err);
         }
       },
     }),
   );
-}
-
-/** 私有仓库认证：仅在远端 404 且未提供 token 时触发。 */
-export async function promptToken(): Promise<string | undefined> {
-  const token = settled<string>(
-    await clack.password({
-      message: 'Repo not found or private — paste a GitHub token (blank to abort):',
-    }),
-  );
-  return token.trim() || undefined;
 }
 
 export async function promptScope(flag?: 'project' | 'user'): Promise<'project' | 'user'> {

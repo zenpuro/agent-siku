@@ -30,7 +30,7 @@ describe('performInstall (integration)', () => {
     mkdirSync(project, { recursive: true });
     const result = performInstall({
       contentRoot,
-      lockSource: { repo: 'zenpuro/agent-siku', ref: 'main' },
+      lockSource: { url: 'https://github.com/zenpuro/agent-siku', ref: 'main', sha: 'abc1234' },
       scope: 'project',
       rootDir: project,
       agents: ['claude-code', 'pi'],
@@ -68,7 +68,7 @@ describe('performInstall (integration)', () => {
     mkdirSync(home, { recursive: true });
     performInstall({
       contentRoot,
-      lockSource: { repo: '(local)', ref: 'local' },
+      lockSource: { url: '(local)', ref: 'local' },
       scope: 'user',
       rootDir: home,
       agents: ['pi', 'zcode'],
