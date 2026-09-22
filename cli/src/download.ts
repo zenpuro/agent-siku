@@ -4,6 +4,8 @@ import { join } from 'node:path';
 import { extract as tarExtract } from 'tar';
 
 const REPO_SLUG = /^[^\s/]+\/[^\s/]+$/;
+const GITHUB_URL = /^(?:https?:\/\/)?(?:www\.)?github\.com\/(.+)$/i;
+const GITHUB_SSH = /^git@github\.com:(.+)$/i;
 
 /** tar 解压所需的最小选项集（结构化类型，避免耦合 tar 的类型导出）。 */
 interface ExtractCall {
@@ -15,19 +17,40 @@ interface ExtractCall {
 export interface RemoteContentOptions {
   /** GitHub 仓库，owner/repo 形式。 */
   repo: string;
-  /** 分支或标签，默认 main。 */
+  /** 分支、标签或 SHA，默认 main。 */
   ref: string;
+  /** GitHub token（私有仓库认证），以 Bearer 方式随请求发送。 */
+  token?: string;
 }
 
 export interface DownloadDeps {
   fetchImpl?: typeof fetch;
   extract?: (options: ExtractCall) => Promise<void>;
+  /** 404 且未携带 token 时调用（私有仓库不提示则不可见）；返回空值表示放弃。 */
+  promptToken?: () => Promise<string | undefined>;
 }
 
 /**
- * 从 GitHub 拉取内容仓库 tarball 并解压到临时目录。
- * 依次尝试分支（refs/heads）与标签（refs/tags）；tar 包默认行为已拒绝
- * 绝对路径与越出解压目录的条目，叠加 strip:1 剥离 GitHub 的顶层目录。
+ * 把用户输入的仓库链接归一化为 owner/repo slug。
+ * 接受 owner/repo、https://github.com/owner/repo（可带 .git、尾斜杠）与
+ * git@github.com:owner/repo.git；其余形式报错。
+ */
+export function parseRepoInput(input: string): string {
+  const trimmed = input.trim().replace(/\.git$/i, '');
+  const matched = trimmed.match(GITHUB_URL) ?? trimmed.match(GITHUB_SSH);
+  const slug = (matched?.[1] ?? trimmed).replace(/^\/+|\/+$/g, '');
+  if (!REPO_SLUG.test(slug)) {
+    throw new Error(`Invalid repo link: ${input} (expected owner/repo or a github.com repo URL)`);
+  }
+  return slug;
+}
+
+/**
+ * 从 GitHub API 拉取内容仓库 tarball 并解压到临时目录。
+ * 使用 /repos/{repo}/tarball/{ref} 端点：分支、标签、SHA 通吃，且携带
+ * Authorization 时可访问私有仓库（codeload 不支持认证）。未带 token 收到 404
+ * 时先经 deps.promptToken 询问一次再重试——GitHub 对无权限的私有仓库同样返回 404。
+ * tar 包默认行为已拒绝绝对路径与越出解压目录的条目，叠加 strip:1 剥离顶层目录。
  * 返回解压后的内容根目录，调用方负责用后清理。
  */
 export async function downloadContent(
@@ -44,15 +67,24 @@ export async function downloadContent(
 
   const fetchImpl = deps.fetchImpl ?? fetch;
   const extract = deps.extract ?? ((o: ExtractCall) => tarExtract(o));
+  const url = `https://api.github.com/repos/${repo}/tarball/${encodeURIComponent(ref)}`;
 
-  const urls = [
-    `https://codeload.github.com/${repo}/tar.gz/refs/heads/${ref}`,
-    `https://codeload.github.com/${repo}/tar.gz/refs/tags/${ref}`,
-  ];
-
-  for (const url of urls) {
-    const res = await fetchImpl(url, { redirect: 'follow' });
-    if (res.status === 404) continue;
+  let token = options.token;
+  for (;;) {
+    const headers: Record<string, string> = { 'User-Agent': 'siku' };
+    if (token) headers.Authorization = `Bearer ${token}`;
+    const res = await fetchImpl(url, { headers, redirect: 'follow' });
+    if (res.status === 404) {
+      if (!token && deps.promptToken) {
+        token = await deps.promptToken();
+        if (token) continue;
+      }
+      throw new Error(
+        `Content source not found: ${repo}@${ref} (ref may not exist, or the repo is private${
+          token ? ' and the token cannot access it' : ''
+        })`,
+      );
+    }
     if (!res.ok) {
       throw new Error(`Download failed (HTTP ${res.status}): ${url}`);
     }
@@ -68,7 +100,6 @@ export async function downloadContent(
     }
     return dest;
   }
-  throw new Error(`Content source not found: ${repo}@${ref} (neither branch nor tag exists)`);
 }
 
 /** 读取临时目录下某个文件内容（诊断/校验用）。 */

@@ -1,6 +1,7 @@
 import * as clack from '@clack/prompts';
 import { agentOrder, agents } from './agents.ts';
 import type { AgentsMdConflict } from './agents-md.ts';
+import { parseRepoInput } from './download.ts';
 import { buildTree } from './tree.ts';
 import { PICKER_CANCEL, treeMultiselect } from './tree-picker.ts';
 import type { AgentId, RuleInfo, SkillInfo } from './types.ts';
@@ -12,6 +13,33 @@ function settled<T>(value: T | symbol): T {
     process.exit(0);
   }
   return value as T;
+}
+
+/** 仓库链接必填：CLI 未传且未设 SIKU_REPO 时在此询问。 */
+export async function promptRepo(): Promise<string> {
+  return settled<string>(
+    await clack.text({
+      message: 'Content repo (GitHub URL or owner/repo):',
+      placeholder: 'https://github.com/owner/repo',
+      validate: (value) => {
+        try {
+          parseRepoInput(value ?? '');
+        } catch (err) {
+          return err instanceof Error ? err.message : String(err);
+        }
+      },
+    }),
+  );
+}
+
+/** 私有仓库认证：仅在远端 404 且未提供 token 时触发。 */
+export async function promptToken(): Promise<string | undefined> {
+  const token = settled<string>(
+    await clack.password({
+      message: 'Repo not found or private — paste a GitHub token (blank to abort):',
+    }),
+  );
+  return token.trim() || undefined;
 }
 
 export async function promptScope(flag?: 'project' | 'user'): Promise<'project' | 'user'> {

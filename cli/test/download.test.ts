@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { create } from 'tar';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { type DownloadDeps, downloadContent } from '../src/download.ts';
+import { type DownloadDeps, downloadContent, parseRepoInput } from '../src/download.ts';
 
 const TOP_DIR = 'zenpuro-agent-siku-main';
 
@@ -26,18 +26,18 @@ afterAll(() => {
 });
 
 describe('downloadContent', () => {
-  it('downloads, extracts and strips the GitHub top-level dir', async () => {
-    const fetchCalls: string[] = [];
+  it('downloads via the GitHub API tarball endpoint and strips the top-level dir', async () => {
+    const calls: { url: string; init?: RequestInit }[] = [];
     const deps: DownloadDeps = {
-      fetchImpl: async (url) => {
-        fetchCalls.push(String(url));
+      fetchImpl: async (url, init) => {
+        calls.push({ url: String(url), init });
         return new Response(tarball, { status: 200 });
       },
     };
     const dest = await downloadContent({ repo: 'zenpuro/agent-siku', ref: 'main' }, deps);
     try {
-      expect(fetchCalls).toHaveLength(1);
-      expect(fetchCalls[0]).toContain('refs/heads/main');
+      expect(calls).toHaveLength(1);
+      expect(calls[0]?.url).toBe('https://api.github.com/repos/zenpuro/agent-siku/tarball/main');
       expect(existsSync(join(dest, 'skills', 'engineering', 'init', 'SKILL.md'))).toBe(true);
       expect(existsSync(join(dest, 'agents-md', 'git-workflow.md'))).toBe(true);
       expect(existsSync(join(dest, TOP_DIR))).toBe(false);
@@ -46,35 +46,81 @@ describe('downloadContent', () => {
     }
   });
 
-  it('falls back from branches to tags on 404', async () => {
-    const urls: string[] = [];
+  it('sends the token as a Bearer auth header when provided', async () => {
+    let headers: Record<string, string> = {};
     const deps: DownloadDeps = {
-      fetchImpl: async (url) => {
-        urls.push(String(url));
-        if (!String(url).includes('refs/tags')) return new Response(null, { status: 404 });
+      fetchImpl: async (_url, init) => {
+        headers = init?.headers as Record<string, string>;
         return new Response(tarball, { status: 200 });
       },
     };
-    const dest = await downloadContent({ repo: 'zenpuro/agent-siku', ref: 'v1.0.0' }, deps);
+    const dest = await downloadContent(
+      { repo: 'zenpuro/agent-siku', ref: 'main', token: 'gh_secret' },
+      deps,
+    );
     rmSync(dest, { recursive: true, force: true });
-    expect(urls.some((u) => u.includes('refs/tags/v1.0.0'))).toBe(true);
+    expect(headers.Authorization).toBe('Bearer gh_secret');
+    expect(headers['User-Agent']).toBeTruthy();
   });
 
-  it('throws a helpful error when ref exists nowhere', async () => {
+  it('prompts for a token on 404 and retries with it (private repo)', async () => {
+    const seen: (string | undefined)[] = [];
     const deps: DownloadDeps = {
-      fetchImpl: async () => new Response(null, { status: 404 }),
+      fetchImpl: async (_url, init) => {
+        const h = init?.headers as Record<string, string>;
+        seen.push(h.Authorization);
+        return seen.length === 1
+          ? new Response(null, { status: 404 })
+          : new Response(tarball, { status: 200 });
+      },
+      promptToken: async () => 'gh_prompted',
+    };
+    const dest = await downloadContent({ repo: 'zenpuro/agent-siku', ref: 'main' }, deps);
+    rmSync(dest, { recursive: true, force: true });
+    expect(seen).toEqual([undefined, 'Bearer gh_prompted']);
+  });
+
+  it('aborts with not-found when no token is given and prompting is declined', async () => {
+    let calls = 0;
+    const deps: DownloadDeps = {
+      fetchImpl: async () => {
+        calls += 1;
+        return new Response(null, { status: 404 });
+      },
+      promptToken: async () => undefined,
     };
     await expect(
       downloadContent({ repo: 'zenpuro/agent-siku', ref: 'nope' }, deps),
-    ).rejects.toThrow('neither branch nor tag exists');
+    ).rejects.toThrow('not found');
+    expect(calls).toBe(1);
   });
 
-  it('fails fast on non-404 HTTP errors without tag fallback', async () => {
+  it('reports not-found when a provided token still gets 404', async () => {
+    let calls = 0;
+    const deps: DownloadDeps = {
+      fetchImpl: async () => {
+        calls += 1;
+        return new Response(null, { status: 404 });
+      },
+      promptToken: async () => {
+        throw new Error('promptToken must not run when a token was already provided');
+      },
+    };
+    await expect(
+      downloadContent({ repo: 'zenpuro/agent-siku', ref: 'nope', token: 'stale' }, deps),
+    ).rejects.toThrow('token cannot access');
+    expect(calls).toBe(1);
+  });
+
+  it('fails fast on non-404 HTTP errors without prompting', async () => {
     let calls = 0;
     const deps: DownloadDeps = {
       fetchImpl: async () => {
         calls += 1;
         return new Response(null, { status: 500 });
+      },
+      promptToken: async () => {
+        throw new Error('promptToken must not run for non-404 errors');
       },
     };
     await expect(
@@ -97,6 +143,29 @@ describe('downloadContent', () => {
     await expect(downloadContent({ repo: '../etc', ref: 'main' }, deps)).rejects.toThrow();
     await expect(downloadContent({ repo: 'a/b', ref: '..' }, deps)).rejects.toThrow();
     expect(calls).toBe(0);
+  });
+});
+
+describe('parseRepoInput', () => {
+  it('accepts owner/repo as-is', () => {
+    expect(parseRepoInput('owner/repo')).toBe('owner/repo');
+  });
+
+  it('normalizes github.com URLs and SSH forms to a slug', () => {
+    expect(parseRepoInput('https://github.com/owner/repo')).toBe('owner/repo');
+    expect(parseRepoInput('https://github.com/owner/repo.git')).toBe('owner/repo');
+    expect(parseRepoInput('https://github.com/owner/repo/')).toBe('owner/repo');
+    expect(parseRepoInput('http://www.github.com/owner/repo.GIT')).toBe('owner/repo');
+    expect(parseRepoInput('git@github.com:owner/repo.git')).toBe('owner/repo');
+  });
+
+  it('rejects non-GitHub hosts and malformed links', () => {
+    expect(() => parseRepoInput('https://gitlab.com/owner/repo')).toThrow('Invalid repo link');
+    expect(() => parseRepoInput('https://github.com/owner/repo/tree/main')).toThrow(
+      'Invalid repo link',
+    );
+    expect(() => parseRepoInput('just-a-name')).toThrow('Invalid repo link');
+    expect(() => parseRepoInput('')).toThrow('Invalid repo link');
   });
 });
 

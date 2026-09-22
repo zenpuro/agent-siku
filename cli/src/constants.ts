@@ -1,6 +1,3 @@
-/** 内容仓库默认源（可被 SIKU_REPO 环境变量或 --repo flag 覆盖）。 */
-export const DEFAULT_REPO = 'zenpuro/agent-siku';
-
 /** 默认内容 ref，跟随 main 即始终最新。 */
 export const DEFAULT_REF = 'main';
 

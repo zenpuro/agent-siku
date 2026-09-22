@@ -8,7 +8,11 @@ npx siku install
 
 ## 工作方式
 
-CLI 与内容分离：本包只含安装器；内容在运行时从内容仓库 `zenpuro/agent-siku` 拉取（GitHub tarball，公共仓库无需认证）。内容更新 = 内容仓库 git push，CLI 无需重新发布。
+CLI 与内容分离：本包只含安装器；内容在运行时从内容仓库拉取（GitHub API tarball 端点，分支/标签/SHA 通吃）。内容更新 = 内容仓库 git push，CLI 无需重新发布。
+
+仓库链接必传，无内置默认值：`--repo` > `SIKU_REPO` 环境变量 > 交互提示。接受 `owner/repo`、`https://github.com/owner/repo`（可带 `.git`）与 `git@github.com:owner/repo.git`。
+
+私有仓库需认证：预先设置 `SIKU_TOKEN` 或 `GITHUB_TOKEN`（需要对仓库的读权限）；未设置时，拉取遇到 404（GitHub 对无权限的私有仓库同样返回 404）会交互询问 token 后重试。
 
 ## 安装目标
 
@@ -29,7 +33,9 @@ siku install [options]
 
   --project                 Install into the current project (skips scope prompt)
   --user                    Install into user home ~ (skips scope prompt)
-  --repo <owner/repo>       Content repo (default zenpuro/agent-siku, overridable via SIKU_REPO)
+  --repo <link>             Content repo link — required unless --source
+                            (owner/repo or a github.com repo URL; SIKU_REPO env
+                            and interactive prompt as fallbacks, no default)
   --ref <ref>               Content branch or tag (default main)
   --source <dir>            Read a local content directory directly (dev, offline, skips download)
   --help, -h                Show help

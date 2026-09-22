@@ -10,18 +10,20 @@ import {
   applyAgentsMd,
   buildAgentsMdContent,
 } from './agents-md.ts';
-import { DEFAULT_REF, DEFAULT_REPO, VERSION } from './constants.ts';
+import { DEFAULT_REF, VERSION } from './constants.ts';
 import { buildManifest } from './content.ts';
-import { downloadContent } from './download.ts';
+import { downloadContent, parseRepoInput } from './download.ts';
 import { applyInstall, planInstall } from './installer.ts';
 import { buildLockFile, writeLockFile } from './lock.ts';
 import {
   promptAgents,
   promptAgentsMdConflict,
   promptInjectAgentsMd,
+  promptRepo,
   promptRules,
   promptScope,
   promptSkills,
+  promptToken,
 } from './prompts.ts';
 import type { AgentId, InstallPlan, RuleInfo, SkillInfo } from './types.ts';
 
@@ -35,10 +37,16 @@ Usage:
 siku install options:
   --project                 Install into the current project (skips scope prompt)
   --user                    Install into user home ~ (skips scope prompt)
-  --repo <owner/repo>       Content repo (default ${DEFAULT_REPO}, overridable via SIKU_REPO)
+  --repo <link>             Content repo link — required unless --source
+                            (owner/repo, https://github.com/owner/repo, or git@github.com:owner/repo.git;
+                            falls back to SIKU_REPO env, then interactive prompt)
   --ref <ref>               Content branch or tag (default ${DEFAULT_REF})
   --source <dir>            Read a local content directory directly (dev, offline, skips download)
   --help, -h                Show this help
+
+Private repos:
+  Set SIKU_TOKEN or GITHUB_TOKEN to a token with repo read access,
+  or you will be prompted for one when the repo requires auth.
 
 Install targets:
   skills     Always written to .agents/skills/; duplicated to .claude/skills/ when Claude Code is selected
@@ -142,11 +150,14 @@ export async function runInstall(flags: InstallFlags): Promise<void> {
     lockSource = { repo: `(local) ${basename(contentRoot)}`, ref: 'local' };
     clack.log.info(`Using local content source: ${contentRoot}`);
   } else {
-    const repo = flags.repo ?? process.env.SIKU_REPO ?? DEFAULT_REPO;
+    // 仓库链接必传：flag > SIKU_REPO > 交互询问，无内置默认
+    const repoInput = flags.repo ?? process.env.SIKU_REPO;
+    const repo = parseRepoInput(repoInput ?? (await promptRepo()));
     const ref = flags.ref ?? DEFAULT_REF;
+    const token = process.env.SIKU_TOKEN ?? process.env.GITHUB_TOKEN;
     const spinner = clack.spinner();
     spinner.start(`Fetching content from ${repo}@${ref}...`);
-    contentRoot = await downloadContent({ repo, ref });
+    contentRoot = await downloadContent({ repo, ref, token }, { promptToken });
     spinner.stop('Content downloaded');
     lockSource = { repo, ref };
     cleanup = () => rmSync(contentRoot, { recursive: true, force: true });
