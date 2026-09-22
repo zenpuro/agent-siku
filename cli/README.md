@@ -1,9 +1,9 @@
-# siku
+# @zenpuro/siku
 
 把集中维护的 agent 内容（skills / rules / agents-md）安装到任意项目或用户环境。
 
 ```
-npx siku install
+npx @zenpuro/siku install
 ```
 
 ## 工作方式

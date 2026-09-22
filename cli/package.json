@@ -1,11 +1,14 @@
 {
-  "name": "siku",
+  "name": "@zenpuro/siku",
   "version": "0.1.0",
+  "publishConfig": {
+    "access": "public"
+  },
   "description": "Install centrally-maintained agent skills, rules and AGENTS.md into any project or user environment.",
   "type": "module",
   "license": "MIT",
   "bin": {
-    "siku": "./dist/cli.mjs"
+    "siku": "dist/cli.mjs"
   },
   "files": [
     "dist"

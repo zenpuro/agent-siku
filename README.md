@@ -3,20 +3,20 @@
 把集中维护的 agent 内容（skills / rules / agents-md）安装到任意项目或用户环境。
 
 ```
-npx siku install
+npx @zenpuro/siku install
 ```
 
 本仓库扮演双重角色：
 
 1. **内容仓库** —— 根目录下的 `skills/`、`rules/`、`agents-md/` 是集中维护的 agent 内容。内容更新只需 git push，无需重新发布 CLI。
-2. **CLI 源码** —— [`cli/`](./cli) 目录是 `siku` npm 包（安装器本体），独立构建与发布。
+2. **CLI 源码** —— [`cli/`](./cli) 目录是 `@zenpuro/siku` npm 包（安装器本体），独立构建与发布。
 
 ## 快速开始
 
 在任意项目或用户主目录下运行：
 
 ```bash
-npx siku install
+npx @zenpuro/siku install
 ```
 
 按提示选择安装范围（项目 / 用户）、内容仓库与要安装的内容即可。需要本机已安装 git。
