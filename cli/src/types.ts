@@ -19,7 +19,7 @@ export interface SkillInfo {
   dirName: string;
   /** 内容包内该技能目录的路径。 */
   srcDir: string;
-  /** SKILL.md frontmatter 的 description，交互列表展示用。 */
+  /** SKILL.md frontmatter 的 description（交互列表不展示，保留供后续用）。 */
   description?: string;
 }
 

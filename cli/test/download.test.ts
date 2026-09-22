@@ -66,7 +66,7 @@ describe('downloadContent', () => {
     };
     await expect(
       downloadContent({ repo: 'zenpuro/agent-siku', ref: 'nope' }, deps),
-    ).rejects.toThrow('分支与标签均不存在');
+    ).rejects.toThrow('neither branch nor tag exists');
   });
 
   it('fails fast on non-404 HTTP errors without tag fallback', async () => {

@@ -47,7 +47,7 @@ function resolveDirNameConflicts(skills: readonly SkillInfo[], warnings: string[
     const existing = seen.get(skill.dirName);
     if (existing) {
       warnings.push(
-        `技能目录名冲突：${existing.id} 与 ${skill.id} 都会安装为 ${skill.dirName}/，已跳过后者`,
+        `Skill directory name conflict: ${existing.id} and ${skill.id} both install as ${skill.dirName}/ — the latter was skipped`,
       );
       continue;
     }

@@ -27,14 +27,16 @@ CLI 与内容分离：本包只含安装器；内容在运行时从内容仓库 
 ```
 siku install [options]
 
-  --project                 安装到当前项目（跳过范围选择）
-  --user                    安装到用户环境 ~（跳过范围选择）
-  --repo <owner/repo>       内容仓库（默认 zenpuro/agent-siku，可被 SIKU_REPO 覆盖）
-  --ref <ref>               内容分支或标签（默认 main）
-  --source <dir>            直读本地内容目录（开发用，离线，跳过下载）
-  --help, -h                显示帮助
-  siku --version            显示版本
+  --project                 Install into the current project (skips scope prompt)
+  --user                    Install into user home ~ (skips scope prompt)
+  --repo <owner/repo>       Content repo (default zenpuro/agent-siku, overridable via SIKU_REPO)
+  --ref <ref>               Content branch or tag (default main)
+  --source <dir>            Read a local content directory directly (dev, offline, skips download)
+  --help, -h                Show help
+  siku --version            Show version
 ```
+
+交互提示信息为英文；skills / rules 以树形多选展示（支持搜索、目录级联全选、`select all (x/y)` 计数）。
 
 ## 开发
 

@@ -36,10 +36,10 @@ export async function downloadContent(
 ): Promise<string> {
   const { repo, ref } = options;
   if (!REPO_SLUG.test(repo)) {
-    throw new Error(`无效的仓库标识: ${repo}（应为 owner/repo）`);
+    throw new Error(`Invalid repo id: ${repo} (expected owner/repo)`);
   }
   if (repo.includes('..') || ref.includes('..') || ref.startsWith('/')) {
-    throw new Error('repo/ref 含有非法字符');
+    throw new Error('repo/ref contains illegal characters');
   }
 
   const fetchImpl = deps.fetchImpl ?? fetch;
@@ -54,7 +54,7 @@ export async function downloadContent(
     const res = await fetchImpl(url, { redirect: 'follow' });
     if (res.status === 404) continue;
     if (!res.ok) {
-      throw new Error(`下载失败（HTTP ${res.status}）: ${url}`);
+      throw new Error(`Download failed (HTTP ${res.status}): ${url}`);
     }
     const tarball = Buffer.from(await res.arrayBuffer());
     const staging = mkdtempSync(join(tmpdir(), 'siku-download-'));
@@ -68,7 +68,7 @@ export async function downloadContent(
     }
     return dest;
   }
-  throw new Error(`未找到内容源 ${repo}@${ref}（分支与标签均不存在）`);
+  throw new Error(`Content source not found: ${repo}@${ref} (neither branch nor tag exists)`);
 }
 
 /** 读取临时目录下某个文件内容（诊断/校验用）。 */

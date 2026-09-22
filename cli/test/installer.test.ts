@@ -74,7 +74,7 @@ describe('planInstall', () => {
     const plan = planInstall(root, ['pi'], sel);
     expect(plan.skillTargets).toHaveLength(1);
     expect(plan.warnings[0]).toContain('init-clone');
-    expect(plan.warnings[0]).toContain('已跳过');
+    expect(plan.warnings[0]).toContain('was skipped');
   });
 });
 
