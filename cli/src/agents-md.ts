@@ -26,11 +26,11 @@ export function applyAgentsMd(
   if (conflict === 'skip') return 'skipped';
 
   if (!existsSync(targetFile)) {
-    writeFileSync(targetFile, `${content}\n`);
+    writeFileSync(targetFile, markedBlock(content));
     return 'written';
   }
   if (conflict === 'overwrite') {
-    writeFileSync(targetFile, `${content}\n`);
+    writeFileSync(targetFile, markedBlock(content));
     return 'overwritten';
   }
 
@@ -41,14 +41,19 @@ export function applyAgentsMd(
 
 /** 追加语义：已有标记区块则原位替换（幂等），否则追加到文件尾部。 */
 export function mergeMarkedBlock(existing: string, content: string): string {
-  const block = `${AGENTS_MD_START}\n${content}\n${AGENTS_MD_END}`;
   const pattern = new RegExp(
     `${escapeRegExp(AGENTS_MD_START)}[\\s\\S]*?${escapeRegExp(AGENTS_MD_END)}`,
   );
   if (pattern.test(existing)) {
-    return existing.replace(pattern, block);
+    // 用函数替换，避免 content 中的 $&、$` 等被 String.replace 当作特殊序列展开
+    return existing.replace(pattern, () => markedBlock(content).trimEnd());
   }
-  return `${existing.trimEnd()}\n\n${block}\n`;
+  return `${existing.trimEnd()}\n\n${markedBlock(content)}`;
+}
+
+/** 把内容包上 siku 标记，输出以换行结尾的完整区块。 */
+function markedBlock(content: string): string {
+  return `${AGENTS_MD_START}\n${content}\n${AGENTS_MD_END}\n`;
 }
 
 /** 返回本次安装需要写入的上下文文件列表。 */

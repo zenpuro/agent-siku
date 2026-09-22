@@ -1,12 +1,10 @@
 .agents
 .claude
-AGENTS.md
+/AGENTS.md
 skills-lock.json
 
 # siku cli
 cli/dist/
 cli/node_modules/
-
-# 进程性文档只留本地
 cli/tasks/
 cli/SPEC.md

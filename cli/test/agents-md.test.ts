@@ -25,17 +25,30 @@ describe('buildAgentsMdContent', () => {
 });
 
 describe('applyAgentsMd', () => {
+  const BLOCK = '<!-- siku:start -->\nhello\n<!-- siku:end -->\n';
+
   it('writes when target missing', () => {
     const target = join(dir, 'new.md');
     expect(applyAgentsMd(target, 'hello', 'overwrite')).toBe('written');
-    expect(readFileSync(target, 'utf8')).toBe('hello\n');
+    // 新文件也必须带标记区块，保证后续 install 幂等替换
+    expect(readFileSync(target, 'utf8')).toBe(BLOCK);
   });
 
   it('overwrites existing file entirely', () => {
     const target = join(dir, 'over.md');
     writeFileSync(target, 'old manual content');
-    expect(applyAgentsMd(target, 'new', 'overwrite')).toBe('overwritten');
-    expect(readFileSync(target, 'utf8')).toBe('new\n');
+    expect(applyAgentsMd(target, 'hello', 'overwrite')).toBe('overwritten');
+    expect(readFileSync(target, 'utf8')).toBe(BLOCK);
+  });
+
+  it('fresh write then append replaces in place instead of stacking', () => {
+    const target = join(dir, 'fresh.md');
+    applyAgentsMd(target, 'v1', 'overwrite');
+    applyAgentsMd(target, 'v2', 'append');
+    const out = readFileSync(target, 'utf8');
+    expect(out.match(/<!-- siku:start -->/g)).toHaveLength(1);
+    expect(out).toContain('v2');
+    expect(out).not.toContain('v1');
   });
 
   it('append preserves existing content and adds marked block', () => {
@@ -71,5 +84,12 @@ describe('mergeMarkedBlock', () => {
     // 标记里的正则元字符不应破坏替换
     const existing = `x\n<!-- siku:start -->\nold\n<!-- siku:end -->\ny`;
     expect(mergeMarkedBlock(existing, 'n[e]w')).toContain('n[e]w');
+  });
+
+  it('does not expand $ sequences in content', () => {
+    // content 里的 $&、$` 不应被 String.replace 当作特殊替换序列展开
+    const existing = '<!-- siku:start -->\nold\n<!-- siku:end -->\n';
+    const out = mergeMarkedBlock(existing, 'price $& and $` done');
+    expect(out).toBe('<!-- siku:start -->\nprice $& and $` done\n<!-- siku:end -->\n');
   });
 });

@@ -79,10 +79,9 @@ describe('performInstall (integration)', () => {
 
     expect(existsSync(join(home, '.agents', 'skills', 'eli5', 'SKILL.md'))).toBe(true);
     expect(existsSync(join(home, '.claude'))).toBe(false);
-    // 新文件即使选 append 也是纯内容（标记区块只用于向已有文件追加）
+    // 新文件也带标记区块，保证后续 install 可幂等原位替换
     const md = readFileSync(join(home, '.agents', 'AGENTS.md'), 'utf8');
-    expect(md).toContain('## Git Commit Format');
-    expect(md).not.toContain('<!-- siku:start -->');
+    expect(md).toContain('<!-- siku:start -->\n## Git Commit Format\n<!-- siku:end -->');
     expect(existsSync(join(home, '.claude', 'CLAUDE.md'))).toBe(false);
     // 无 rules 时 lock.rules 为空
     const lock = JSON.parse(readFileSync(join(home, 'siku-lock.json'), 'utf8'));
