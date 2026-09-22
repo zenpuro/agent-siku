@@ -29,6 +29,92 @@ const ANSI_SEQUENCE = new RegExp(`${ESC}\\[[0-9;]*[A-Za-z]`);
 const ANSI_SEQUENCE_GLOBAL = new RegExp(`${ESC}\\[[0-9;]*[A-Za-z]`, 'g');
 /** DSR（设备状态报告）应答：\x1b[<row>;<col>R（不锚定，容忍同 chunk 里的相邻字节）。 */
 const DSR_REPLY = new RegExp(`${ESC}\\[(\\d+);\\d+R`);
+/** DSR 应答被拆分时的未完前缀（尾部）： lone ESC、ESC[、ESC[24、ESC[24; 等。 */
+const DSR_PARTIAL = new RegExp(`${ESC}\\[[0-9;]*$|${ESC}$`);
+
+export interface DsrPush {
+  /** 完整应答中的光标行号；本 chunk 未组成完整应答时为 null。 */
+  row: number | null;
+  /** 本 chunk 含应答字节（或其前缀）：readline 会解析出杂散按键（unknown + 'R'），应整轮吞掉。 */
+  swallow: boolean;
+}
+
+/**
+ * DSR 应答匹配器。应答可能被 stdin 拆成任意多个 chunk（Windows 终端常见），
+ * 只对单 chunk 做正则会漏配后半段，被 readline 解析成杂散按键——
+ * 字面 'R' 会漏进搜索框当过滤词，把路径不含 r 的条目"隐藏"掉。
+ * 这里缓存未完前缀，与下一个 chunk 拼接后再匹配。
+ */
+export class DsrReplyMatcher {
+  private tail = '';
+
+  push(chunk: string): DsrPush {
+    const text = this.tail + chunk;
+    this.tail = '';
+    const full = DSR_REPLY.exec(text);
+    if (full) {
+      return { row: Number.parseInt(full[1] ?? '1', 10), swallow: true };
+    }
+    const partial = DSR_PARTIAL.exec(text);
+    if (partial) {
+      this.tail = partial[0];
+      return { row: null, swallow: true };
+    }
+    return { row: null, swallow: false };
+  }
+}
+
+/** StdinTap 需要的最小流接口（测试用 EventEmitter 冒充）。 */
+type DataListener = (chunk: Buffer | string) => void;
+
+interface DataStream {
+  on(event: 'data', listener: DataListener): unknown;
+  removeListener(event: 'data', listener: DataListener): unknown;
+  listeners(event: 'data'): DataListener[];
+}
+
+/** StdinTap 的路由目标：收到原始 stdin chunk 时被调用。 */
+export interface StdinDataHandler {
+  handleData(chunk: string): void;
+}
+
+/**
+ * stdin 原始数据路由。data 路由与 keypress 发射器全进程只装一次，且路由必须先执行。
+ * 坑：clack 等 readline Interface（terminal 模式）close() 后会残留 keypress 发射器，
+ * 杂散按键会先于后注册的 data 路由产生，DSR 抑制永远迟到（rules 选择器必漏 'R' 的根因）。
+ * 因此构造时把既有 'data' 监听挪到路由之后，不依赖注册顺序。
+ */
+export class StdinTap {
+  private handler: StdinDataHandler | null = null;
+
+  constructor(stream: DataStream) {
+    const existing = stream.listeners('data');
+    for (const listener of existing) stream.removeListener('data', listener);
+    stream.on('data', this.onData);
+    for (const listener of existing) stream.on('data', listener);
+    emitKeypressEvents(stream as unknown as NodeJS.ReadableStream);
+  }
+
+  private readonly onData = (chunk: Buffer | string): void => {
+    this.handler?.handleData(typeof chunk === 'string' ? chunk : chunk.toString('utf8'));
+  };
+
+  attach(handler: StdinDataHandler): void {
+    this.handler = handler;
+  }
+
+  detach(handler: StdinDataHandler): void {
+    if (this.handler === handler) this.handler = null;
+  }
+}
+
+let stdinTap: StdinTap | null = null;
+
+/** 全进程唯一的 stdin 接线；首次创建后复用（含后续所有 picker 实例）。 */
+function getStdinTap(): StdinTap {
+  stdinTap ??= new StdinTap(process.stdin);
+  return stdinTap;
+}
 
 type VisibleRow = { kind: 'all'; depth: 0; node?: undefined } | ({ kind: 'node' } & FlatRow);
 
@@ -83,6 +169,8 @@ class TreePicker {
   private queryEpoch = 0;
   /** DSR 应答会被 readline 拆成杂散按键，同一轮 tick 内全部吞掉。 */
   private suppressKeys = false;
+  private readonly dsr = new DsrReplyMatcher();
+  private readonly tap = getStdinTap();
   private resizeTimer: NodeJS.Timeout | undefined;
   private dsrTimer: NodeJS.Timeout | undefined;
   private done = false;
@@ -98,9 +186,8 @@ class TreePicker {
     this.wasRaw = process.stdin.isRaw === true;
 
     this.rebuildRows();
-    // data 监听必须先于 emitKeypressEvents：DSR 应答的原始字节要先到这里。
-    process.stdin.on('data', this.onData);
-    emitKeypressEvents(process.stdin);
+    // data 路由（含 DSR 捕获）由全进程唯一的 StdinTap 提供，恒先于 keypress 发射器执行。
+    this.tap.attach(this);
     if (process.stdin.isTTY) process.stdin.setRawMode(true);
     process.stdin.resume();
     process.stdin.on('keypress', this.onKeypress);
@@ -111,27 +198,28 @@ class TreePicker {
   }
 
   /**
-   * DSR 应答（\x1b[<row>;<col>R）从原始 stdin 字节中捕获。
-   * readline 会把同一串字节拆成杂散按键（unknown + 'r'），
-   * 因此捕获到应答后在同一轮 tick 内吞掉所有按键事件。
+   * DSR 应答（\x1b[<row>;<col>R）从原始 stdin 字节中捕获（由 StdinTap 路由，
+   * 恒先于 keypress 发射器执行，与第几个 picker 无关）。
+   * 应答可能被拆到多个 chunk，由 DsrReplyMatcher 拼接重组；
+   * readline 会把应答字节拆成杂散按键（unknown + 'r'），
+   * 因此捕获到应答字节后在同一轮 tick 内吞掉所有按键事件。
    */
-  private readonly onData = (chunk: Buffer | string): void => {
-    const text = typeof chunk === 'string' ? chunk : chunk.toString('utf8');
-    const m = DSR_REPLY.exec(text);
-    if (!m || !this.pendingDsr) return;
-    this.pendingDsr = false;
+  readonly handleData = (chunk: string): void => {
+    const { row, swallow } = this.dsr.push(chunk);
+    if (!swallow) return;
     this.suppressKeys = true;
     process.nextTick(() => {
       this.suppressKeys = false;
     });
+    if (row === null || !this.pendingDsr) return;
+    this.pendingDsr = false;
     if (this.dsrTimer !== undefined) {
       clearTimeout(this.dsrTimer);
       this.dsrTimer = undefined;
     }
     // 应答期间发生过渲染：行号基准已变，应答过期，丢弃。
     if (this.queryEpoch !== this.epoch) return;
-    const reportedRow = Number.parseInt(m[1] ?? '1', 10);
-    this.frameTop = Math.max(1, reportedRow - this.physicalRows() + 1);
+    this.frameTop = Math.max(1, row - this.physicalRows() + 1);
     if (this.awaitingRelocate) {
       this.awaitingRelocate = false;
       this.render(true);
@@ -380,7 +468,7 @@ class TreePicker {
     this.done = true;
     if (this.resizeTimer !== undefined) clearTimeout(this.resizeTimer);
     if (this.dsrTimer !== undefined) clearTimeout(this.dsrTimer);
-    process.stdin.removeListener('data', this.onData);
+    this.tap.detach(this);
     process.stdin.removeListener('keypress', this.onKeypress);
     process.stdout.removeListener('resize', this.onResize);
     if (process.stdin.isTTY) process.stdin.setRawMode(this.wasRaw);
