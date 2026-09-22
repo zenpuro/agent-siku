@@ -46,7 +46,3 @@ npm test / lint / typecheck / build
 ```
 
 发布：在 `cli/` 目录 `npm publish`，包内仅含 `dist/`（见 `files` 字段），内容目录永不随包发布。
-
-## 设计文档
-
-见 [SPEC.md](./SPEC.md) 与 [tasks/plan.md](./tasks/plan.md)。
