@@ -21,7 +21,7 @@ export interface TreePickerOptions {
   roots: readonly PickerNode[];
 }
 
-const HELP = '↑/↓ move · space select · type to filter · enter confirm · esc cancel';
+const HELP = '↑/↓ move · space select · ←→ fold · type to filter · enter confirm · esc cancel';
 
 /** ANSI CSI 序列（如颜色码、光标移动）。控制字符用运行时拼接，绕开正则字面量限制。 */
 const ESC = String.fromCharCode(27);
@@ -71,6 +71,8 @@ class TreePicker {
   private rows: VisibleRow[] = [];
   private cursor = 0;
   private winStart = 0;
+  /** 已折叠目录的路径集合。 */
+  private readonly collapsed = new Set<string>();
   private widths: number[] = [];
   /** 帧顶的绝对行号（DSR 查询得到；未知时退回相对清除）。 */
   private frameTop: number | null = null;
@@ -156,6 +158,12 @@ class TreePicker {
         return;
       case 'space':
         this.toggleCurrent();
+        return;
+      case 'right':
+        this.expandCurrent();
+        return;
+      case 'left':
+        this.collapseCurrent();
         return;
       case 'return':
       case 'enter':
@@ -266,7 +274,13 @@ class TreePicker {
       return `${pc.dim('│')} ${caret} ${box} ${depth}${pc.bold('select all')} ${count}`;
     }
     const box = this.box(this.stateOf(row.node));
-    const head = `${pc.dim('│')} ${caret} ${box} ${depth}${row.node.name}`;
+    const marker =
+      row.node.type !== 'dir'
+        ? '  '
+        : this.collapsed.has(row.node.path)
+          ? `${pc.cyan('▸')} `
+          : `${pc.dim('▾')} `;
+    const head = `${pc.dim('│')} ${caret} ${box} ${marker}${depth}${row.node.name}`;
     if (row.node.type === 'dir') {
       const { picked, total } = selectionStats(row.node, this.selected);
       return `${head} ${pc.dim(`(${picked}/${total})`)}`;
@@ -297,7 +311,7 @@ class TreePicker {
   }
 
   private rebuildRows(): void {
-    const flat = flattenTree(this.roots, this.query).map<VisibleRow>((r) => ({
+    const flat = flattenTree(this.roots, this.query, this.collapsed).map<VisibleRow>((r) => ({
       kind: 'node',
       depth: r.depth + 1,
       node: r.node,
@@ -334,6 +348,30 @@ class TreePicker {
     if (!row) return;
     if (row.kind === 'all') toggleAll(this.roots, this.selected);
     else toggleNode(row.node, this.selected);
+    this.render(true);
+  }
+
+  /** → ：展开光标处的折叠目录；其余行 no-op。 */
+  private expandCurrent(): void {
+    const row = this.rows[this.cursor];
+    if (!row || row.kind === 'all' || row.node.type !== 'dir') return;
+    if (!this.collapsed.has(row.node.path)) return;
+    this.collapsed.delete(row.node.path);
+    this.rebuildRows();
+    this.clampWindow();
+    this.render(true);
+  }
+
+  /** ← ：折叠光标处的展开目录；叶子/已折叠目录 no-op。光标在后代上时收回到该目录。 */
+  private collapseCurrent(): void {
+    const row = this.rows[this.cursor];
+    if (!row || row.kind === 'all' || row.node.type !== 'dir') return;
+    if (row.node.children.length === 0 || this.collapsed.has(row.node.path)) return;
+    this.collapsed.add(row.node.path);
+    const dirIndex = this.cursor;
+    this.rebuildRows();
+    if (this.cursor > dirIndex) this.cursor = dirIndex;
+    this.clampWindow();
     this.render(true);
   }
 

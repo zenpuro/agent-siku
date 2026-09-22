@@ -84,6 +84,41 @@ describe('flattenTree', () => {
   });
 });
 
+describe('flattenTree + collapsed', () => {
+  const roots = buildTree(IDS);
+
+  it('折叠目录保留自身行，隐藏全部后代', () => {
+    const rows = flattenTree(roots, '', new Set(['engineering']));
+    expect(rows.map((r) => r.node.name)).toEqual([
+      'brand',
+      'brand-naming',
+      'engineering',
+      'loose-skill',
+      'pm',
+      'competitor-analysis',
+    ]);
+  });
+
+  it('折叠 + 过滤：后代有匹配时折叠目录仍显示，但不展开', () => {
+    const rows = flattenTree(buildTree(IDS), 'code-review', new Set(['engineering']));
+    expect(rows.map((r) => r.node.name)).toEqual(['engineering']);
+  });
+
+  it('折叠 + 过滤：无匹配后代的折叠目录照常被剪掉', () => {
+    const rows = flattenTree(buildTree(IDS), 'ask-matt', new Set(['brand', 'engineering', 'pm']));
+    expect(rows.map((r) => r.node.name)).toEqual(['engineering']);
+  });
+
+  it('折叠子目录不影响父目录展开其余后代', () => {
+    const rows = flattenTree(roots, '', new Set(['engineering/mattcopock']));
+    const names = rows.map((r) => r.node.name);
+    expect(names).toContain('init');
+    expect(names).toContain('mattcopock');
+    expect(names).not.toContain('ask-matt');
+    expect(names).not.toContain('code-review');
+  });
+});
+
 describe('selection', () => {
   const roots = buildTree(IDS);
   const engineering = pick(roots, 'engineering');

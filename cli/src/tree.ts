@@ -63,19 +63,26 @@ function sortLevel(nodes: PickerNode[]): void {
  * 展开为可见行（深度优先，目录在后代之前）。
  * query 非空时按叶子完整路径做大小写不敏感的子串过滤；
  * 无匹配后代的目录被剪掉，有匹配后代的目录保留（自身名不匹配也保留）。
+ * collapsed 中的目录保留自身行但不展开后代（过滤匹配检查不受折叠影响）。
  */
-export function flattenTree(roots: readonly PickerNode[], query = ''): FlatRow[] {
+export function flattenTree(
+  roots: readonly PickerNode[],
+  query = '',
+  collapsed: ReadonlySet<string> = new Set(),
+): FlatRow[] {
   const rows: FlatRow[] = [];
   const q = query.trim().toLowerCase();
+  const subtreeMatches = (node: PickerNode): boolean =>
+    node.type === 'leaf' ? node.path.toLowerCase().includes(q) : node.children.some(subtreeMatches);
   const walk = (nodes: readonly PickerNode[], depth: number): void => {
     for (const node of nodes) {
       if (node.type === 'leaf') {
         if (!q || node.path.toLowerCase().includes(q)) rows.push({ node, depth });
         continue;
       }
-      const before = rows.length;
-      walk(node.children, depth + 1);
-      if (rows.length > before) rows.splice(before, 0, { node, depth });
+      if (q && !subtreeMatches(node)) continue;
+      rows.push({ node, depth });
+      if (!collapsed.has(node.path)) walk(node.children, depth + 1);
     }
   };
   walk(roots, 0);
