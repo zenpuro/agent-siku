@@ -61,7 +61,6 @@ skills/          # 技能（按 brand / engineering / pm / productivity 等分�
 rules/           # 规则（common / typescript 等分类）
 agents-md/       # AGENTS.md 片段（如 git-workflow）
 cli/             # siku CLI 源码（TypeScript + Node >= 20）
-scripts/         # 仓库辅助脚本（worktree setup 等）
 .agents/ .claude/ # 本仓库自身的安装产物（dogfooding，已 gitignore）
 ```
 

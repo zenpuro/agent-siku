@@ -1,7 +1,5 @@
 .agents
-.claude
-/AGENTS.md
-skills-lock.json
+AGENTS.md
 
 # siku cli
 cli/dist/

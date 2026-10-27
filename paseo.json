@@ -1,5 +1,0 @@
-{
-  "worktree": {
-    "setup": "node scripts/worktree-setup.mjs"
-  }
-}
