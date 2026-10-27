@@ -1,11 +1,14 @@
-## Git Commit Message Format
+## Git 提交信息格式
 
 ```
-<type>: <description>
+<类型>: <描述>
 
-<optional body>
+<可选正文>
 ```
 
-Types: feat, fix, refactor, docs, test, chore, perf, ci.
+类型: feat, fix, refactor, docs, test, chore, perf, ci。
 
-Note: Do NOT add co-author attribution to commits.
+要求：
+
+- 提交信息的描述部分使用中文（类型保留英文关键字）。
+- 不要在提交中添加 co-author 署名。
