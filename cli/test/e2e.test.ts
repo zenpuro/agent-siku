@@ -14,8 +14,9 @@ beforeAll(() => {
   writeSkill(join(contentRoot, 'skills/productivity/eli5'));
   mkdirSync(join(contentRoot, 'rules/common'), { recursive: true });
   writeFileSync(join(contentRoot, 'rules/common/coding-style.md'), '# style');
-  mkdirSync(join(contentRoot, 'agents-md'), { recursive: true });
+  mkdirSync(join(contentRoot, 'agents-md/workflows'), { recursive: true });
   writeFileSync(join(contentRoot, 'agents-md/git-workflow.md'), '## Git Commit Format');
+  writeFileSync(join(contentRoot, 'agents-md/workflows/review.md'), '## Review Protocol');
   sandbox = mkdtempSync(join(tmpdir(), 'siku-e2e-'));
 });
 
@@ -29,7 +30,6 @@ describe('performInstall (integration)', () => {
     const project = join(sandbox, 'project-a');
     mkdirSync(project, { recursive: true });
     const result = performInstall({
-      contentRoot,
       lockSource: { url: 'https://github.com/zenpuro/agent-siku', ref: 'main', sha: 'abc1234' },
       scope: 'project',
       rootDir: project,
@@ -42,7 +42,10 @@ describe('performInstall (integration)', () => {
           srcFile: join(contentRoot, 'rules/common/coding-style.md'),
         },
       ],
-      agentsMd: { inject: true, conflict: 'overwrite' },
+      agentsMd: {
+        files: [{ id: 'git-workflow.md', srcFile: join(contentRoot, 'agents-md/git-workflow.md') }],
+        conflict: 'overwrite',
+      },
     });
 
     // universal + claude 派生
@@ -52,29 +55,80 @@ describe('performInstall (integration)', () => {
     expect(
       readFileSync(join(project, '.claude', 'rules', 'common', 'coding-style.md'), 'utf8'),
     ).toBe('# style');
-    // AGENTS.md 注入
+    // AGENTS.md 只包含选中的片段
     const md = readFileSync(join(project, 'AGENTS.md'), 'utf8');
     expect(md).toContain('## Git Commit Format');
-    // lock
+    expect(md).not.toContain('## Review Protocol');
+    // lock 记录选中的片段 id
     expect(result.lockPath).toBe(join(project, 'siku-lock.json'));
     const lock = JSON.parse(readFileSync(result.lockPath, 'utf8'));
     expect(Object.keys(lock.skills).sort()).toEqual(['eli5', 'init']);
-    expect(lock.agentsMd).toBe(true);
+    expect(lock.agentsMd).toEqual(['git-workflow.md']);
     expect(result.plan.skillTargets).toHaveLength(4); // 2 技能 × 2 目标
+  });
+
+  it('injects only the picked agents-md subset from a subdirectory', () => {
+    const project = join(sandbox, 'project-subset');
+    mkdirSync(project, { recursive: true });
+    const result = performInstall({
+      lockSource: { url: 'https://github.com/zenpuro/agent-siku', ref: 'main' },
+      scope: 'project',
+      rootDir: project,
+      agents: ['pi'],
+      skills: [],
+      rules: [],
+      agentsMd: {
+        files: [
+          {
+            id: 'workflows/review.md',
+            srcFile: join(contentRoot, 'agents-md/workflows/review.md'),
+          },
+        ],
+        conflict: 'overwrite',
+      },
+    });
+
+    const md = readFileSync(join(project, 'AGENTS.md'), 'utf8');
+    expect(md).toContain('## Review Protocol');
+    expect(md).not.toContain('## Git Commit Format');
+    expect(result.mdTargets).toEqual([join(project, 'AGENTS.md')]);
+    const lock = JSON.parse(readFileSync(join(project, 'siku-lock.json'), 'utf8'));
+    expect(lock.agentsMd).toEqual(['workflows/review.md']);
+  });
+
+  it('skips agents-md entirely when no files are selected', () => {
+    const home = join(sandbox, 'home-none');
+    mkdirSync(home, { recursive: true });
+    const result = performInstall({
+      lockSource: { url: '(local)', ref: 'local' },
+      scope: 'user',
+      rootDir: home,
+      agents: ['pi'],
+      skills: [skill('productivity/eli5')],
+      rules: [],
+      agentsMd: { files: [], conflict: 'skip' },
+    });
+
+    expect(result.mdTargets).toEqual([]);
+    expect(existsSync(join(home, '.agents', 'AGENTS.md'))).toBe(false);
+    const lock = JSON.parse(readFileSync(join(home, 'siku-lock.json'), 'utf8'));
+    expect(lock.agentsMd).toEqual([]);
   });
 
   it('user install without claude-code writes only universal + ~/.agents/AGENTS.md', () => {
     const home = join(sandbox, 'home-a');
     mkdirSync(home, { recursive: true });
     performInstall({
-      contentRoot,
       lockSource: { url: '(local)', ref: 'local' },
       scope: 'user',
       rootDir: home,
       agents: ['pi', 'zcode'],
       skills: [skill('productivity/eli5')],
       rules: [],
-      agentsMd: { inject: true, conflict: 'append' },
+      agentsMd: {
+        files: [{ id: 'git-workflow.md', srcFile: join(contentRoot, 'agents-md/git-workflow.md') }],
+        conflict: 'append',
+      },
     });
 
     expect(existsSync(join(home, '.agents', 'skills', 'eli5', 'SKILL.md'))).toBe(true);

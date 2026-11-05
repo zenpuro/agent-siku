@@ -4,7 +4,7 @@ import type { AgentsMdConflict } from './agents-md.ts';
 import { parseRepoUrl } from './download.ts';
 import { buildTree } from './tree.ts';
 import { PICKER_CANCEL, treeMultiselect } from './tree-picker.ts';
-import type { AgentId, RuleInfo, SkillInfo } from './types.ts';
+import type { AgentId, AgentsMdFileInfo, RuleInfo, SkillInfo } from './types.ts';
 
 /** clack 的取消信号统一转成优雅退出。 */
 function settled<T>(value: T | symbol): T {
@@ -103,10 +103,25 @@ export async function promptRules(
   return picked.map((id) => byId.get(id)).filter((r): r is RuleInfo => r !== undefined);
 }
 
-export async function promptInjectAgentsMd(): Promise<boolean> {
-  return settled<boolean>(
-    await clack.confirm({ message: 'Inject agents-md (generate AGENTS.md context)?' }),
+/**
+ * agents-md 树形多选（与 skills / rules 同一套交互：搜索、目录级联、←→ 折叠、select all 计数）。
+ * 一个都没选 = 不注入；内容源没有 agents-md 文件时直接跳过。
+ */
+export async function promptAgentsMd(
+  files: readonly AgentsMdFileInfo[],
+): Promise<AgentsMdFileInfo[]> {
+  if (files.length === 0) {
+    clack.log.info('No agents-md found in the content source — skipping');
+    return [];
+  }
+  const picked = settled<string[]>(
+    await treeMultiselect({
+      message: `Select agents-md files to inject (${files.length} available, 0 = skip)`,
+      roots: buildTree(files.map((f) => f.id)),
+    }),
   );
+  const byId = new Map(files.map((f) => [f.id, f]));
+  return picked.map((id) => byId.get(id)).filter((f): f is AgentsMdFileInfo => f !== undefined);
 }
 
 /** 目标不存在时无需询问处理方式。 */

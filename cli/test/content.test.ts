@@ -31,10 +31,12 @@ beforeAll(() => {
   writeRule('typescript', 'coding-style.md', '# ts style');
   mkdirSync(join(root, 'rules/typescript'), { recursive: true });
   writeFileSync(join(root, 'rules/typescript/notes.txt'), 'not markdown');
-  // agents-md
-  mkdirSync(join(root, 'agents-md'), { recursive: true });
-  writeFileSync(join(root, 'agents-md/git-workflow.md'), '## Git');
+  // agents-md：顶层 + 子目录任意深度，非 md 文件忽略
+  mkdirSync(join(root, 'agents-md/workflows/deep'), { recursive: true });
   writeFileSync(join(root, 'agents-md/coding.md'), '## Coding');
+  writeFileSync(join(root, 'agents-md/git-workflow.md'), '## Git');
+  writeFileSync(join(root, 'agents-md/workflows/review.md'), '## Review');
+  writeFileSync(join(root, 'agents-md/workflows/deep/ship.md'), '## Ship');
   writeFileSync(join(root, 'agents-md/notes.txt'), 'not markdown');
 });
 
@@ -89,11 +91,19 @@ describe('scanRules', () => {
 });
 
 describe('scanAgentsMdFiles', () => {
-  it('lists only md files sorted by name', () => {
-    expect(scanAgentsMdFiles(root).map((f) => f.replaceAll('\\', '/'))).toEqual([
-      expect.stringContaining('agents-md/coding.md'),
-      expect.stringContaining('agents-md/git-workflow.md'),
+  it('walks subdirectories at any depth and returns id + srcFile sorted by id', () => {
+    const files = scanAgentsMdFiles(root);
+    expect(files.map((f) => f.id)).toEqual([
+      'coding.md',
+      'git-workflow.md',
+      'workflows/deep/ship.md',
+      'workflows/review.md',
     ]);
+    for (const f of files) expect(f.srcFile).toContain(f.id.split('/').pop() ?? '');
+  });
+
+  it('ignores non-md files', () => {
+    expect(scanAgentsMdFiles(root).some((f) => f.id.endsWith('.txt'))).toBe(false);
   });
 
   it('returns empty for missing agents-md dir', () => {
@@ -107,7 +117,7 @@ describe('buildManifest', () => {
     expect(m.rootDir).toBe(root);
     expect(m.skills).toHaveLength(3);
     expect(m.rules).toHaveLength(3);
-    expect(m.agentsMdFiles).toHaveLength(2);
+    expect(m.agentsMdFiles.map((f) => f.id)).toHaveLength(4);
   });
 });
 

@@ -36,7 +36,11 @@ function listFiles(dir: string): string[] {
  * 由安装计划构建 lock 对象。
  * 技能去重（同一技能可能在 .agents 与 .claude 各一份，内容相同，只记一条）。
  */
-export function buildLockFile(source: LockSource, plan: InstallPlan, agentsMd: boolean): LockFile {
+export function buildLockFile(
+  source: LockSource,
+  plan: InstallPlan,
+  agentsMdIds: readonly string[],
+): LockFile {
   const skills: Record<string, string> = {};
   for (const { skill } of plan.skillTargets) {
     if (skills[skill.dirName] === undefined) {
@@ -53,7 +57,7 @@ export function buildLockFile(source: LockSource, plan: InstallPlan, agentsMd: b
     source,
     skills,
     rules,
-    agentsMd,
+    agentsMd: [...agentsMdIds],
   };
 }
 

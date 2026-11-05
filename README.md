@@ -52,14 +52,14 @@ siku install [options]
   siku --version            Show version
 ```
 
-交互提示信息为英文；skills / rules 以树形多选展示（支持搜索、目录级联全选、←→ 折叠/展开、`select all (x/y)` 计数）。
+交互提示信息为英文；skills / rules / agents-md 以树形多选展示（支持搜索、目录级联全选、←→ 折叠/展开、`select all (x/y)` 计数）。
 
 ## 仓库结构
 
 ```
 skills/          # 技能（按 brand / engineering / pm / productivity 等分类）
 rules/           # 规则（common / typescript 等分类）
-agents-md/       # AGENTS.md 片段（如 git-workflow）
+agents-md/       # AGENTS.md 片段（可按子目录组织，如 workflows/git-review）
 cli/             # siku CLI 源码（TypeScript + Node >= 20）
 .agents/ .claude/ # 本仓库自身的安装产物（dogfooding，已 gitignore）
 ```
@@ -68,7 +68,7 @@ cli/             # siku CLI 源码（TypeScript + Node >= 20）
 
 - `skills/<分类>/<技能名>/SKILL.md` —— 一个目录一个技能，可附带参考文档。
 - `rules/<分类>/<规则名>.md` —— 按语言或通用性分类的规则文档。
-- `agents-md/<片段名>.md` —— 拼装进目标项目 `AGENTS.md` 的片段。
+- `agents-md/<片段名>.md` —— 拼装进目标项目 `AGENTS.md` 的片段，支持子目录任意深度组织，逐个（或按目录级联）勾选后按选择顺序拼接。
 
 ## CLI 开发
 

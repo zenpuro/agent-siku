@@ -17,14 +17,21 @@ import { applyInstall, planInstall } from './installer.ts';
 import { buildLockFile, writeLockFile } from './lock.ts';
 import {
   promptAgents,
+  promptAgentsMd,
   promptAgentsMdConflict,
-  promptInjectAgentsMd,
   promptRepo,
   promptRules,
   promptScope,
   promptSkills,
 } from './prompts.ts';
-import type { AgentId, InstallPlan, LockSource, RuleInfo, SkillInfo } from './types.ts';
+import type {
+  AgentId,
+  AgentsMdFileInfo,
+  InstallPlan,
+  LockSource,
+  RuleInfo,
+  SkillInfo,
+} from './types.ts';
 
 const HELP = `siku — install centrally-maintained skills / rules / AGENTS.md into any project or user environment
 
@@ -52,7 +59,8 @@ Private repos:
 Install targets:
   skills     Always written to .agents/skills/; duplicated to .claude/skills/ when Claude Code is selected
   rules      Written to .claude/rules/ only when Claude Code is selected
-  agents-md  Project install generates AGENTS.md; user install generates ~/.agents/AGENTS.md (plus CLAUDE.md for Claude Code)
+  agents-md  Per-file tree picker (search / cascade / fold); selected files are concatenated into
+             AGENTS.md (project) or ~/.agents/AGENTS.md (+ CLAUDE.md when Claude Code is selected)
 `;
 
 export interface InstallFlags {
@@ -89,14 +97,14 @@ export function parseInstallArgs(args: string[]): InstallFlags {
 
 /** 收集完全部选择后，一次安装的完整输入（与交互解耦，可直接测试）。 */
 export interface PerformInstallInput {
-  contentRoot: string;
   lockSource: LockSource;
   scope: 'project' | 'user';
   rootDir: string;
   agents: AgentId[];
   skills: SkillInfo[];
   rules: RuleInfo[];
-  agentsMd: { inject: boolean; conflict: AgentsMdConflict };
+  /** 选中的 agents-md 片段；空数组 = 不注入。 */
+  agentsMd: { files: AgentsMdFileInfo[]; conflict: AgentsMdConflict };
 }
 
 export interface PerformInstallResult {
@@ -107,25 +115,28 @@ export interface PerformInstallResult {
 
 /** 安装核心：计划 → 复制 → 上下文文件 → lock。不做任何交互。 */
 export function performInstall(input: PerformInstallInput): PerformInstallResult {
-  const manifest = buildManifest(input.contentRoot);
   const plan = planInstall(input.rootDir, input.agents, {
     skills: input.skills,
     rules: input.rules,
-    injectAgentsMd: input.agentsMd.inject,
   });
   applyInstall(plan);
 
-  const mdTargets = input.agentsMd.inject
-    ? agentsMdTargets(input.scope, input.rootDir, input.agents.includes('claude-code'))
-    : [];
-  if (input.agentsMd.inject) {
-    const mdContent = buildAgentsMdContent(manifest.agentsMdFiles);
+  const mdTargets =
+    input.agentsMd.files.length > 0
+      ? agentsMdTargets(input.scope, input.rootDir, input.agents.includes('claude-code'))
+      : [];
+  if (input.agentsMd.files.length > 0) {
+    const mdContent = buildAgentsMdContent(input.agentsMd.files.map((f) => f.srcFile));
     for (const target of mdTargets) {
       applyAgentsMd(target, mdContent, input.agentsMd.conflict);
     }
   }
 
-  const lock = buildLockFile(input.lockSource, plan, input.agentsMd.inject);
+  const lock = buildLockFile(
+    input.lockSource,
+    plan,
+    input.agentsMd.files.map((f) => f.id),
+  );
   const lockPath = writeLockFile(input.rootDir, lock);
   return { plan, mdTargets, lockPath };
 }
@@ -184,28 +195,27 @@ export async function runInstall(flags: InstallFlags): Promise<void> {
     const skills = await promptSkills(manifest.skills);
     const rules = await promptRules(manifest.rules, hasClaude);
 
-    const inject = await promptInjectAgentsMd();
+    const agentsMdFiles = await promptAgentsMd(manifest.agentsMdFiles);
     const mdTargets = agentsMdTargets(scope, rootDir, hasClaude);
     let conflict: AgentsMdConflict | false = false;
-    if (inject) {
+    if (agentsMdFiles.length > 0) {
       conflict = await promptAgentsMdConflict(mdTargets.some((f) => existsSync(f)));
     }
 
-    if (skills.length === 0 && rules.length === 0 && !inject) {
+    if (skills.length === 0 && rules.length === 0 && agentsMdFiles.length === 0) {
       clack.outro('Nothing selected — exiting.');
       return;
     }
 
     // 4. 执行安装核心
     const result = performInstall({
-      contentRoot,
       lockSource,
       scope,
       rootDir,
       agents,
       skills,
       rules,
-      agentsMd: { inject, conflict: conflict === false ? 'skip' : conflict },
+      agentsMd: { files: agentsMdFiles, conflict: conflict === false ? 'skip' : conflict },
     });
     for (const warning of result.plan.warnings) clack.log.warn(warning);
 
@@ -213,7 +223,11 @@ export async function runInstall(flags: InstallFlags): Promise<void> {
     const lines = [
       `skills: ${result.plan.skillTargets.length} target dirs (${skills.length} skills)`,
       `rules: ${result.plan.ruleTargets.length} files`,
-      `agents-md: ${inject ? result.mdTargets.join(', ') : 'not injected'}`,
+      `agents-md: ${
+        agentsMdFiles.length > 0
+          ? `${agentsMdFiles.length} file(s) → ${result.mdTargets.join(', ')}`
+          : 'not injected'
+      }`,
       `lock: ${result.lockPath}`,
     ];
     clack.note(lines.join('\n'), 'Install complete');

@@ -34,7 +34,6 @@ function makeSelectionDir(skills: SkillInfo[], rules: string[] = []): InstallSel
       writeFileSync(srcFile, `# rule ${id}`);
       return { id, category: id.split('/')[0] ?? '', srcFile };
     }),
-    injectAgentsMd: false,
   };
   return selection;
 }

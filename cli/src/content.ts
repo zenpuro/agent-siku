@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { basename, join, relative } from 'node:path';
-import type { ContentManifest, RuleInfo, SkillInfo } from './types.ts';
+import type { AgentsMdFileInfo, ContentManifest, RuleInfo, SkillInfo } from './types.ts';
 
 const SKILL_FILE = 'SKILL.md';
 
@@ -69,15 +69,22 @@ export function scanRules(contentRoot: string): RuleInfo[] {
   return rules.sort((a, b) => a.id.localeCompare(b.id));
 }
 
-/** agents-md/ 下全部 .md 文件，按文件名排序。 */
-export function scanAgentsMdFiles(contentRoot: string): string[] {
+/** agents-md/ 下全部 .md 文件（含子目录，任意深度），按相对路径排序。 */
+export function scanAgentsMdFiles(contentRoot: string): AgentsMdFileInfo[] {
   const dir = join(contentRoot, 'agents-md');
   if (!existsSync(dir)) return [];
-  return readdirSync(dir, { withFileTypes: true })
-    .filter((e) => e.isFile() && e.name.toLowerCase().endsWith('.md'))
-    .map((e) => e.name)
-    .sort()
-    .map((name) => join(dir, name));
+  const out: AgentsMdFileInfo[] = [];
+  const walk = (cur: string): void => {
+    for (const entry of readdirSync(cur, { withFileTypes: true })) {
+      const full = join(cur, entry.name);
+      if (entry.isDirectory()) walk(full);
+      else if (entry.isFile() && entry.name.toLowerCase().endsWith('.md')) {
+        out.push({ id: toPosixPath(relative(dir, full)), srcFile: full });
+      }
+    }
+  };
+  walk(dir);
+  return out.sort((a, b) => a.id.localeCompare(b.id));
 }
 
 /**

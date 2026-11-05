@@ -42,7 +42,7 @@ siku install [options]
   siku --version            Show version
 ```
 
-交互提示信息为英文；skills / rules 以树形多选展示（支持搜索、目录级联全选、←→ 折叠/展开、`select all (x/y)` 计数）。
+交互提示信息为英文；skills / rules / agents-md 以树形多选展示（支持搜索、目录级联全选、←→ 折叠/展开、`select all (x/y)` 计数）。
 
 ## 开发
 

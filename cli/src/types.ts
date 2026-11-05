@@ -23,6 +23,14 @@ export interface SkillInfo {
   description?: string;
 }
 
+/** 一个可注入的 agents-md 片段：agents-md/ 下任意深度的 .md 文件。 */
+export interface AgentsMdFileInfo {
+  /** 相对 agents-md/ 的显示路径，如 workflows/git-workflow.md。 */
+  id: string;
+  /** 内容包内该文件的路径。 */
+  srcFile: string;
+}
+
 /** 一个可安装的规则文件：rules/<分类>/<文件>.md。 */
 export interface RuleInfo {
   /** 相对 rules/ 的路径，如 common/coding-style.md。 */
@@ -38,15 +46,14 @@ export interface ContentManifest {
   rootDir: string;
   skills: SkillInfo[];
   rules: RuleInfo[];
-  /** agents-md/ 下全部 .md 文件的路径（已按文件名排序）。 */
-  agentsMdFiles: string[];
+  /** agents-md/ 下全部 .md 文件（含子目录，已按相对路径排序）。 */
+  agentsMdFiles: AgentsMdFileInfo[];
 }
 
-/** 用户在交互流中做出的选择。 */
+/** 用户在交互流中做出的选择（agents-md 选择独立于计划，见 cli.ts）。 */
 export interface InstallSelection {
   skills: SkillInfo[];
   rules: RuleInfo[];
-  injectAgentsMd: boolean;
 }
 
 export interface SkillTarget {
@@ -93,5 +100,6 @@ export interface LockFile {
   skills: Record<string, string>;
   /** 相对路径 → 内容聚合 sha256。 */
   rules: Record<string, string>;
-  agentsMd: boolean;
+  /** 本轮注入的 agents-md 片段 id（相对 agents-md/ 的路径）；空数组 = 未注入。 */
+  agentsMd: string[];
 }

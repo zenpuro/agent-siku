@@ -72,7 +72,7 @@ describe('buildLockFile + writeLockFile', () => {
     const lock = buildLockFile(
       { url: 'https://github.com/zenpuro/agent-siku', ref: 'main', sha: 'abc1234' },
       plan,
-      true,
+      ['git-workflow.md', 'workflows/review.md'],
     );
     expect(lock.version).toBe(1);
     expect(lock.source).toEqual({
@@ -83,7 +83,7 @@ describe('buildLockFile + writeLockFile', () => {
     expect(Object.keys(lock.skills)).toEqual(['init']);
     expect(lock.skills.init).toMatch(/^[0-9a-f]{64}$/);
     expect(lock.rules['common/style.md']).toMatch(/^[0-9a-f]{64}$/);
-    expect(lock.agentsMd).toBe(true);
+    expect(lock.agentsMd).toEqual(['git-workflow.md', 'workflows/review.md']);
     expect(lock.installedAt).toBeTruthy();
   });
 
@@ -94,7 +94,7 @@ describe('buildLockFile + writeLockFile', () => {
       source: { url: 'https://github.com/zenpuro/agent-siku', ref: 'main' },
       skills: {},
       rules: {},
-      agentsMd: false,
+      agentsMd: [],
     };
     const root = join(dir, 'proj');
     mkdirSync(root, { recursive: true });
