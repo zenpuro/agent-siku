@@ -79,7 +79,13 @@ npm run dev -- install --source ../   # 直读本仓库内容，离线调试
 npm test / lint / typecheck / build
 ```
 
-发布：在 `cli/` 目录 `npm publish`，包内仅含 `dist/`（见 `files` 字段），内容目录永不随包发布。CLI 与内容分离：本包只含安装器，内容在运行时通过 `git clone --depth 1` 从内容仓库拉取。
+### CI / 发布
+
+- **CI**（`.github/workflows/ci.yml`）：PR 与 push 到 main 时自动跑 lint / typecheck / test / build / npm audit（均在 `cli/` 下）。
+- **自动发布**（`.github/workflows/publish.yml`）：推送 `v*` tag 触发，先校验 tag 与 `cli/package.json` 的 version 一致，再跑全部质量门禁，然后 `npm publish --access public --provenance` 发布到 npm 公共仓库，并自动创建 GitHub Release（generate notes）。
+- 前置配置：仓库 Secrets 中配置 `NPM_TOKEN`（npmjs.com 的 Granular Access Token，类型选 Automation）。
+- 发布步骤：更新 `cli/package.json` 的 version → 提交 → 打 tag `git tag vX.Y.Z` → `git push origin vX.Y.Z`。
+- 包内仅含 `dist/`（见 `files` 字段），内容目录永不随包发布。CLI 与内容分离：本包只含安装器，内容在运行时通过 `git clone --depth 1` 从内容仓库拉取。
 
 详细设计与规格见 [`cli/SPEC.md`](./cli/SPEC.md) 与 [`cli/README.md`](./cli/README.md)。
 
