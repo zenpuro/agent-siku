@@ -2,12 +2,6 @@
 name: typescript-best-practices
 description: TypeScript best practices. Use when reading or editing any .ts or .tsx file.
 disable-model-invocation: true
-metadata:
-  credits:
-    skill: typescript-best-practices
-    author: Lauren Tan
-    organisation: Cursor
-    url: "https://github.com/cursor/plugins/tree/main/pstack/skills/typescript-best-practices"
 ---
 
 # TypeScript best practices

@@ -2,12 +2,6 @@
 name: principle-make-operations-idempotent
 description: "Apply when designing commands, lifecycle steps, or processing loops that run amid crashes, restarts, and retries. Converge to the same end state regardless of partial prior runs."
 disable-model-invocation: true
-metadata:
-  credits:
-    skill: principle-make-operations-idempotent
-    author: Lauren Tan
-    organisation: Cursor
-    url: "https://github.com/cursor/plugins/tree/main/pstack/skills/principle-make-operations-idempotent"
 ---
 
 # Make Operations Idempotent

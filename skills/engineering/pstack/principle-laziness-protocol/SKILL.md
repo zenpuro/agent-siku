@@ -2,12 +2,6 @@
 name: principle-laziness-protocol
 description: "Apply when refactoring, evaluating diff size, or tempted to add abstractions, layers, or signal threading. Bias toward deletion and the smallest change that solves the problem."
 disable-model-invocation: true
-metadata:
-  credits:
-    skill: principle-laziness-protocol
-    author: Lauren Tan
-    organisation: Cursor
-    url: "https://github.com/cursor/plugins/tree/main/pstack/skills/principle-laziness-protocol"
 ---
 
 # Laziness Protocol

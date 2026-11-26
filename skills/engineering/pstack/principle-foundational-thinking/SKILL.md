@@ -2,12 +2,6 @@
 name: principle-foundational-thinking
 description: "Apply before writing logic: choosing core types and data structures, sequencing scaffold-vs-feature work, asking what concurrent actors share. Get the data structures right so downstream code becomes obvious."
 disable-model-invocation: true
-metadata:
-  credits:
-    skill: principle-foundational-thinking
-    author: Lauren Tan
-    organisation: Cursor
-    url: "https://github.com/cursor/plugins/tree/main/pstack/skills/principle-foundational-thinking"
 ---
 
 # Foundational Thinking

@@ -2,12 +2,6 @@
 name: unslop
 description: Cut AI tells from any writing.
 disable-model-invocation: true
-metadata:
-  credits:
-    skill: unslop
-    author: Lauren Tan
-    organisation: Cursor
-    url: "https://github.com/cursor/plugins/tree/main/pstack/skills/unslop"
 ---
 
 # Unslop

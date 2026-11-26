@@ -2,12 +2,6 @@
 name: reframe
 description: "Teach the expert words for what the operator is building, borrow words from neighboring fields that solved the same problem, then rewrite their description with them. Use for /reframe."
 disable-model-invocation: true
-metadata:
-  credits:
-    skill: reframe
-    author: Lauren Tan
-    organisation: Cursor
-    url: "https://github.com/cursor/plugins/tree/main/pstack/skills/reframe"
 ---
 
 Teach the operator the expert words for what they are building. Start from their own files, code and description, not a summary.

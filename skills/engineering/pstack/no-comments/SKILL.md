@@ -2,12 +2,6 @@
 name: no-comments
 description: "Spawn Comment Sicko, fix accepted findings, and offer encodings for claimed constraints."
 disable-model-invocation: true
-metadata:
-  credits:
-    skill: no-comments
-    author: Lauren Tan
-    organisation: Cursor
-    url: "https://github.com/cursor/plugins/tree/main/pstack/skills/no-comments"
 ---
 
 # No comments

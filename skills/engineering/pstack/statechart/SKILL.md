@@ -2,12 +2,6 @@
 name: statechart
 description: "Check a TLA+ model of a system that moves between states, such as a product flow, a protocol, or a service, and draw it as a Mermaid statechart. The report gives the shortest path to each state that breaks a rule. Use for /statechart, or to show a bug as a path through states."
 disable-model-invocation: true
-metadata:
-  credits:
-    skill: statechart
-    author: Lauren Tan
-    organisation: Cursor
-    url: "https://github.com/cursor/plugins/tree/main/pstack/skills/statechart"
 ---
 
 # Statechart

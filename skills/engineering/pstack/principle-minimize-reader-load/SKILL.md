@@ -2,12 +2,6 @@
 name: principle-minimize-reader-load
 description: "Apply when reviewing or shaping code that's hard to trace. Count layers between question and answer, and hidden state in the reader's head; collapse one-caller wrappers and shrink mutable scope."
 disable-model-invocation: true
-metadata:
-  credits:
-    skill: principle-minimize-reader-load
-    author: Lauren Tan
-    organisation: Cursor
-    url: "https://github.com/cursor/plugins/tree/main/pstack/skills/principle-minimize-reader-load"
 ---
 
 # Minimize Reader Load

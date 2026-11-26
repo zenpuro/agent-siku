@@ -2,12 +2,6 @@
 name: principle-outcome-oriented-execution
 description: "Apply during planned rewrites and migrations with explicit phase boundaries. Converge on the target architecture; don't preserve smooth intermediate states with throwaway compatibility code."
 disable-model-invocation: true
-metadata:
-  credits:
-    skill: principle-outcome-oriented-execution
-    author: Lauren Tan
-    organisation: Cursor
-    url: "https://github.com/cursor/plugins/tree/main/pstack/skills/principle-outcome-oriented-execution"
 ---
 
 # Outcome-Oriented Execution

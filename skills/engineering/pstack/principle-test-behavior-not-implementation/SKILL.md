@@ -2,12 +2,6 @@
 name: principle-test-behavior-not-implementation
 description: "Apply when you write, change, or keep a test. Assert what the code's users can observe, so that the test fails when that behavior breaks and keeps passing when only the internals change."
 disable-model-invocation: true
-metadata:
-  credits:
-    skill: principle-test-behavior-not-implementation
-    author: Lauren Tan
-    organisation: Cursor
-    url: "https://github.com/cursor/plugins/tree/main/pstack/skills/principle-test-behavior-not-implementation"
 ---
 
 # Test Behavior, Not Implementation

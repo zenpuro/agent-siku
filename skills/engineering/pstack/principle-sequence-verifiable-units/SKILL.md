@@ -2,12 +2,6 @@
 name: principle-sequence-verifiable-units
 description: "Apply to multi-step work (sweeps, migrations, runs of similar edits) and to how you stack commits and PRs. Break work into small units that each end in a verifiable state, check each before the next, and order delivery so the sequence proves itself to a reviewer."
 disable-model-invocation: true
-metadata:
-  credits:
-    skill: principle-sequence-verifiable-units
-    author: Lauren Tan
-    organisation: Cursor
-    url: "https://github.com/cursor/plugins/tree/main/pstack/skills/principle-sequence-verifiable-units"
 ---
 
 # Sequence work into verifiable units

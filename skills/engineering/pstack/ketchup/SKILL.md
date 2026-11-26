@@ -2,12 +2,6 @@
 name: ketchup
 description: "Catch the user up on what changed in this chat since their last message, in plain words and small visuals. List every item waiting on them with what they need to decide it from the reply alone. Use for /ketchup."
 disable-model-invocation: true
-metadata:
-  credits:
-    skill: ketchup
-    author: Lauren Tan
-    organisation: Cursor
-    url: "https://github.com/cursor/plugins/tree/main/pstack/skills/ketchup"
 ---
 
 # Ketchup

@@ -2,12 +2,6 @@
 name: principle-redesign-from-first-principles
 description: "Apply when integrating a new requirement into an existing design."
 disable-model-invocation: true
-metadata:
-  credits:
-    skill: principle-redesign-from-first-principles
-    author: Lauren Tan
-    organisation: Cursor
-    url: "https://github.com/cursor/plugins/tree/main/pstack/skills/principle-redesign-from-first-principles"
 ---
 
 # Redesign From First Principles

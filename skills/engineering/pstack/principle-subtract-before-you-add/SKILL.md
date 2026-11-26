@@ -2,12 +2,6 @@
 name: principle-subtract-before-you-add
 description: "Apply when sequencing an addition, refactor, or rewrite. Remove dead code, redundant validators, and stub references first, then build on the simpler base."
 disable-model-invocation: true
-metadata:
-  credits:
-    skill: principle-subtract-before-you-add
-    author: Lauren Tan
-    organisation: Cursor
-    url: "https://github.com/cursor/plugins/tree/main/pstack/skills/principle-subtract-before-you-add"
 ---
 
 # Subtract Before You Add

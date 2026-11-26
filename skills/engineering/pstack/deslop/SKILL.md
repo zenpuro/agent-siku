@@ -1,12 +1,6 @@
 ---
 name: deslop
 description: Remove AI-generated code slop and clean up code style
-metadata:
-  credits:
-    skill: deslop
-    author: Eric Zakariasson
-    organisation: Cursor
-    url: "https://github.com/cursor/plugins/tree/main/cursor-team-kit/skills/deslop"
 ---
 
 # Remove AI code slop

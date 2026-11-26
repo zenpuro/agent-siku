@@ -1,12 +1,6 @@
 ---
 name: control-cli
 description: Build or adapt a local harness to drive, inspect, and profile an interactive CLI or TUI without external services. Use for CLI UX checks, startup regressions, memory leaks, hangs, prompt flows, or terminal demos.
-metadata:
-  credits:
-    skill: control-cli
-    author: Eric Zakariasson
-    organisation: Cursor
-    url: "https://github.com/cursor/plugins/tree/main/cursor-team-kit/skills/control-cli"
 ---
 
 # Control CLI

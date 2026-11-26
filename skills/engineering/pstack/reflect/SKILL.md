@@ -2,12 +2,6 @@
 name: reflect
 description: Mine the active transcript for durable learnings and route each to a concrete edit on an existing skill. Use when the user says reflect.
 disable-model-invocation: true
-metadata:
-  credits:
-    skill: reflect
-    author: Lauren Tan
-    organisation: Cursor
-    url: "https://github.com/cursor/plugins/tree/main/pstack/skills/reflect"
 ---
 
 # Reflect

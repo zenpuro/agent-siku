@@ -2,12 +2,6 @@
 name: poteto-help
 description: Guides users through pstack setup, /poteto-mode, and picking the skill, playbook, or principle for a task. Type /poteto-help with a question.
 disable-model-invocation: true
-metadata:
-  credits:
-    skill: poteto-help
-    author: Lauren Tan
-    organisation: Cursor
-    url: "https://github.com/cursor/plugins/tree/main/pstack/skills/poteto-help"
 ---
 
 # Poteto help

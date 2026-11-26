@@ -2,12 +2,6 @@
 name: principle-never-block-on-the-human
 description: "Apply when tempted to ask 'should I do X?' on reversible work."
 disable-model-invocation: true
-metadata:
-  credits:
-    skill: principle-never-block-on-the-human
-    author: Lauren Tan
-    organisation: Cursor
-    url: "https://github.com/cursor/plugins/tree/main/pstack/skills/principle-never-block-on-the-human"
 ---
 
 # Never Block on the Human

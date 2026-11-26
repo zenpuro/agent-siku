@@ -2,12 +2,6 @@
 name: sharpen
 description: "Make a task deeper, not bigger, then rewrite the prompt. Use for /sharpen."
 disable-model-invocation: true
-metadata:
-  credits:
-    skill: sharpen
-    author: Lauren Tan
-    organisation: Cursor
-    url: "https://github.com/cursor/plugins/tree/main/pstack/skills/sharpen"
 ---
 
 I want a deeper version of this task, not a bigger one. Before rewriting it, do four things:

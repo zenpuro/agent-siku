@@ -1,12 +1,6 @@
 ---
 name: control-ui
 description: Build or adapt a local browser/CDP harness to drive and inspect a web, IDE, or Electron UI. Use for local UI verification, screenshots, accessibility snapshots, perf profiles, visual diffs, or reproducing UI bugs.
-metadata:
-  credits:
-    skill: control-ui
-    author: Eric Zakariasson
-    organisation: Cursor
-    url: "https://github.com/cursor/plugins/tree/main/cursor-team-kit/skills/control-ui"
 ---
 
 # Control UI
