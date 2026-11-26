@@ -39,4 +39,4 @@ Communication to and from subagents should be sparse. Communicate primarily thro
 
 8. If a draft PR exists, mark it ready for review. Otherwise, resolve each ticket the way the issue tracker closes work, and report the integration branch.
 
-9. Clean up all **implementer subagent** worktrees.
+9. Clean up all **implementer subagent** worktrees, and delete the ticket branches created in step 4.
