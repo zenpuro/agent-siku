@@ -37,7 +37,6 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.14",
-    "@biomejs/cli-win32-x64": "^2.5.14",
     "@types/node": "^26.6.2",
     "tsdown": "^0.22.2",
     "tsx": "^4.23.15",
