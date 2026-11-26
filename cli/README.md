@@ -53,4 +53,4 @@ npm run dev -- install --source ../   # 直读本仓库内容，离线调试
 npm test / lint / typecheck / build
 ```
 
-发布：在 `cli/` 目录 `npm publish`，包内仅含 `dist/`（见 `files` 字段），内容目录永不随包发布。
+发布：推送 `v*` tag 触发 CI 自动发布（npm Trusted Publishing / OIDC，无需本地 token；详见根 README「CI / 发布」）。包内仅含 `dist/`（见 `files` 字段），内容目录永不随包发布。
